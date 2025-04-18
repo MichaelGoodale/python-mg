@@ -5,6 +5,9 @@ use logprob::LogProb;
 use minimalist_grammar_parser::{lexicon::Lexicon, Generator, ParsingConfig, RulePool};
 use pyo3::prelude::*;
 
+mod graphing;
+use graphing::{PyMgEdge, PyMgNode};
+
 #[pyclass(name = "SyntacticStructure", str, eq, frozen)]
 #[derive(Debug)]
 struct PySyntacticStructure {
@@ -39,6 +42,29 @@ impl PySyntacticStructure {
     fn latex(&self) -> String {
         let lex = self.lex.get();
         self.rules.to_latex(&lex.0)
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn __to_tree_inner(&self) -> (Vec<(usize, PyMgNode)>, Vec<(usize, usize, PyMgEdge)>) {
+        let (g, _root) = self.rules.to_tree(&self.lex.get().0);
+        let nodes = g
+            .node_indices()
+            .map(|n| (n.index(), PyMgNode(g.node_weight(n).unwrap().clone())))
+            .collect::<Vec<_>>();
+
+        let edges = g
+            .edge_indices()
+            .map(|e| {
+                let (src, tgt) = g.edge_endpoints(e).unwrap();
+                (
+                    src.index(),
+                    tgt.index(),
+                    PyMgEdge(*g.edge_weight(e).unwrap()),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        (nodes, edges)
     }
 }
 
@@ -112,5 +138,8 @@ impl PyLexicon {
 #[pyo3(name = "_lib_name")]
 fn python_mg(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyLexicon>()?;
+    m.add_class::<PySyntacticStructure>()?;
+    m.add_class::<PyMgNode>()?;
+    m.add_class::<PyMgEdge>()?;
     Ok(())
 }

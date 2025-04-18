@@ -233,7 +233,7 @@ checksum = "2687e6cf9c00f48e9284cf9fd15f2ef341d03cc7743abf9df4c5f07fdee50b18"
 [[package]]
 name = "minimalist-grammar-parser"
 version = "0.1.0"
-source = "git+ssh://git@github.com/MichaelGoodale/minimalist-grammar-parser.git#53c39be425bd32202ad68d8f31b8bd3bc6f3f906"
+source = "git+ssh://git@github.com/MichaelGoodale/minimalist-grammar-parser.git#7398e2b16f7fc94abb8f8f96fd52166af445579f"
 dependencies = [
  "ahash",
  "anyhow",

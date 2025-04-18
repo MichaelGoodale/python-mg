@@ -1,6 +1,6 @@
 import pytest
 
-from python_mg._lib_name import Lexicon
+from python_mg import Lexicon
 
 
 def test_lexicon():
@@ -11,3 +11,5 @@ def test_lexicon():
         parse.latex()
         == "\\begin{forest}\n[{\\der{a}}\n\t[{\\plainlex{a}{\\cancel{b=} a}} ]\n\t[{\\plainlex{b}{\\cancel{b}}} ] ]\n\\end{forest}"
     )
+
+    assert parse.to_tree() == "a"
