@@ -9,4 +9,9 @@ name = "python_mg"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = "0.24.0"
+pyo3 = { version = "0.24.0", features = ["anyhow"] }
+minimalist-grammar-parser = { git = "ssh://git@github.com/MichaelGoodale/minimalist-grammar-parser.git", features = [
+  "pretty",
+] }
+anyhow = "1.0.98"
+logprob = "0.2.1"
