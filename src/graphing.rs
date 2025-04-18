@@ -35,9 +35,14 @@ impl Display for PyMgNode {
                     .join(" "),
                 movement
                     .iter()
-                    .map(|x| x.to_string())
+                    .map(|x| x
+                        .features()
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(" "))
                     .collect::<Vec<_>>()
-                    .join(" "),
+                    .join(", "),
             ),
             MgNode::Leaf {
                 lemma, features, ..
@@ -59,8 +64,33 @@ impl Display for PyMgNode {
     }
 }
 
+#[pymethods]
+impl PyMgNode {
+    fn is_trace(&self) -> bool {
+        matches!(self.0, MgNode::Trace(_))
+    }
+
+    fn trace_id(&self) -> PyResult<usize> {
+        match &self.0 {
+            MgNode::Node { .. } | MgNode::Leaf { .. } => Err(anyhow::anyhow!("Not a trace node!"))?,
+            MgNode::Trace(trace_id) => Ok(trace_id.index()),
+        }
+    }
+
+    fn lemma_string(&self) -> String {
+        match &self.0 {
+            MgNode::Node { .. } => "".to_string(),
+            MgNode::Leaf { lemma, .. } => match lemma {
+                Some(s) => s.clone(),
+                None => "".to_string(),
+            },
+            MgNode::Trace(trace_id) => format!("t{trace_id}"),
+        }
+    }
+}
+
 #[pyclass(name = "MGEdge", str, eq, frozen)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq)]
 pub struct PyMgEdge(pub MGEdge);
 
 impl Display for PyMgEdge {
@@ -77,5 +107,12 @@ impl Display for PyMgEdge {
                 }
             ),
         }
+    }
+}
+
+#[pymethods]
+impl PyMgEdge {
+    fn is_move(&self) -> bool {
+        matches!(self.0, MGEdge::Move)
     }
 }

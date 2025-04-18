@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use anyhow::anyhow;
 use logprob::LogProb;
-use minimalist_grammar_parser::{lexicon::Lexicon, Generator, ParsingConfig, RulePool};
+use minimalist_grammar_parser::{lexicon::Lexicon, Generator, Parser, ParsingConfig, RulePool};
 use pyo3::prelude::*;
 
 mod graphing;
@@ -45,8 +45,8 @@ impl PySyntacticStructure {
     }
 
     #[allow(clippy::type_complexity)]
-    fn __to_tree_inner(&self) -> (Vec<(usize, PyMgNode)>, Vec<(usize, usize, PyMgEdge)>) {
-        let (g, _root) = self.rules.to_tree(&self.lex.get().0);
+    fn __to_tree_inner(&self) -> (Vec<(usize, PyMgNode)>, Vec<(usize, usize, PyMgEdge)>, usize) {
+        let (g, root) = self.rules.to_tree(&self.lex.get().0);
         let nodes = g
             .node_indices()
             .map(|n| (n.index(), PyMgNode(g.node_weight(n).unwrap().clone())))
@@ -64,7 +64,7 @@ impl PySyntacticStructure {
             })
             .collect::<Vec<_>>();
 
-        (nodes, edges)
+        (nodes, edges, root.index())
     }
 }
 
@@ -79,10 +79,12 @@ impl Display for PyLexicon {
 }
 
 #[pyclass]
-struct GrammarIterator(
-    Generator<Lexicon<String, String>, String, String>,
-    Py<PyLexicon>,
-);
+struct GrammarIterator {
+    gen: Generator<Lexicon<String, String>, String, String>,
+    max_strings: Option<usize>,
+    n_strings: usize,
+    lexicon: Py<PyLexicon>,
+}
 
 #[pymethods]
 impl GrammarIterator {
@@ -91,21 +93,30 @@ impl GrammarIterator {
     }
 
     fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<PySyntacticStructure> {
-        let py = slf.py();
-        slf.0
-            .next()
-            .map(|(prob, string, rules)| PySyntacticStructure {
+        if let Some(n) = slf.max_strings {
+            if slf.n_strings >= n {
+                return None;
+            }
+        }
+
+        if let Some((prob, string, rules)) = slf.gen.next() {
+            slf.n_strings += 1;
+            let py = slf.py();
+            Some(PySyntacticStructure {
                 prob,
                 string,
                 rules,
-                lex: slf.1.clone_ref(py),
+                lex: slf.lexicon.clone_ref(py),
             })
+        } else {
+            None
+        }
     }
 }
 
 #[pymethods]
 impl PyLexicon {
-    #[pyo3(signature = (category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256))]
+    #[pyo3(signature = (category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256, max_strings=None))]
     fn generate_grammar(
         slf: PyRef<'_, Self>,
         category: String,
@@ -113,6 +124,7 @@ impl PyLexicon {
         move_prob: f64,
         max_steps: usize,
         n_beams: usize,
+        max_strings: Option<usize>,
     ) -> PyResult<GrammarIterator> {
         let config = ParsingConfig::new(
             LogProb::new(min_log_prob).map_err(|x| anyhow!(x.to_string()))?,
@@ -121,10 +133,58 @@ impl PyLexicon {
             n_beams,
         );
         let py = slf.py();
-        Ok(GrammarIterator(
-            Generator::new(slf.0.clone(), category, &config)?,
-            slf.into_pyobject(py).unwrap().into(),
-        ))
+        Ok(GrammarIterator {
+            gen: Generator::new(slf.0.clone(), category, &config)?,
+            max_strings,
+            lexicon: slf.into_pyobject(py).unwrap().into(),
+            n_strings: 0,
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature = (s, category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256, max_parses=None))]
+    fn parse(
+        slf: PyRef<'_, Self>,
+        s: &str,
+        category: String,
+        min_log_prob: f64,
+        move_prob: f64,
+        max_steps: usize,
+        n_beams: usize,
+        max_parses: Option<usize>,
+    ) -> PyResult<Vec<PySyntacticStructure>> {
+        let s = s.split(" ").map(|x| x.to_string()).collect::<Vec<_>>();
+        let config = ParsingConfig::new(
+            LogProb::new(min_log_prob).map_err(|x| anyhow!(x.to_string()))?,
+            LogProb::from_raw_prob(move_prob).map_err(|x| anyhow!(x.to_string()))?,
+            max_steps,
+            n_beams,
+        );
+
+        let parser = Parser::new(&slf.0, category, &s, &config)?;
+
+        let py = slf.py();
+        let self_ref: Py<Self> = slf.clone().into_pyobject(py).unwrap().into();
+        if let Some(max_parses) = max_parses {
+            Ok(parser
+                .take(max_parses)
+                .map(|(prob, string, rules)| PySyntacticStructure {
+                    prob,
+                    rules,
+                    string: string.to_vec(),
+                    lex: self_ref.clone_ref(py),
+                })
+                .collect())
+        } else {
+            Ok(parser
+                .map(|(prob, string, rules)| PySyntacticStructure {
+                    prob,
+                    rules,
+                    string: string.to_vec(),
+                    lex: self_ref.clone_ref(py),
+                })
+                .collect())
+        }
     }
 
     #[new]
