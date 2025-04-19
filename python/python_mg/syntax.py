@@ -1,11 +1,23 @@
-from typing import Mapping
-from python_mg._lib_name import Lexicon, SyntacticStructure, MGNode, MGEdge
+from __future__ import annotations
+from dataclasses import dataclass
+from python_mg._lib_name import SyntacticStructure, MGNode, MGEdge
 import rustworkx as rx
 
 
 def sort_key(G, e):
     (_, n) = G.get_edge_endpoints_by_index(e)
     return G.get_node_data(n).trace_id()
+
+
+@dataclass
+class Mover:
+    s: list[str | Mover]
+    trace: int
+
+
+@dataclass
+class Trace:
+    trace: int
 
 
 class ParseTree:
@@ -33,18 +45,42 @@ class ParseTree:
                 movements[trace_id].append(tgt)
             elif G.get_node_data(tgt).is_trace():
                 trace_id = G.get_node_data(tgt).trace_id()
+                multitrace_2_single_trace[trace_id] = trace_id
                 movements[trace_id] = [src, tgt]
         self.G = G
+        self.multitrace_2_single_trace = multitrace_2_single_trace
         self.movements = movements
+        self.movement_sources = {m[0]: i for i, m in self.movements.items()}
 
     def normal_string(self) -> str:
         return str(self.structure)
 
-    def base_string(self):
-        edges = rx.dfs_edges(self.G, source=self.root)
-        nodes = [self.G.get_node_data(t).lemma_string() for _, t in edges]
-        nodes.reverse()
-        print(nodes)
+    def base_string(self) -> list[str | Mover | Trace]:
+        linear_order = self.__explore(self.root)
+        return linear_order
+
+    def __explore(self, n_i: int) -> list[str | Mover | Trace]:
+        out = []
+        children = [(str(e), n) for (_, n, e) in self.G.out_edges(n_i)]
+        left_children = [n for (e, n) in children if e == "L"]
+        right_children = [n for (e, n) in children if e != "L"]
+        for child in left_children:
+            out += self.__explore(child)
+
+        node = self.G.get_node_data(n_i)
+        s = self.G.get_node_data(n_i).lemma_string()
+        if node.is_trace():
+            out.append(Trace(self.multitrace_2_single_trace[node.trace_id()]))
+        elif s != "":
+            out.append(s)
+
+        for child in right_children:
+            out += self.__explore(child)
+
+        if n_i in self.movement_sources:
+            return [Mover(out, self.movement_sources[n_i])]
+
+        return out
 
 
 def to_tree(self) -> ParseTree:
@@ -52,7 +88,7 @@ def to_tree(self) -> ParseTree:
 
     # This will usually be the identity function, but on the off chance its not, we do this.
     # Waste computation in exchange for not having a horrible headache
-    old2new: Mapping[int, int] = {}
+    old2new: dict[int, int] = {}
 
     G = rx.PyDiGraph()
     for old_node_i, node in nodes:
