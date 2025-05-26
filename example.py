@@ -19,9 +19,23 @@ likes::d= V -v
 ::V= +k d= +q v
 """
 
+grammar = """
+::V= C
+::V= +W C
+knows::C= =D V
+says::C= =D V
+prefers::D= =D V
+drinks::D= =D V
+king::N
+wine::N
+beer::N
+queen::N
+the::N= D
+which::N= D -W
+"""
 lexicon = Lexicon(grammar)
 
-for p in lexicon.generate_grammar("t", max_strings=100):
+for p in lexicon.generate_grammar("C", max_strings=100):
     print(p)
     print(p.latex())
     tree = p.to_tree()

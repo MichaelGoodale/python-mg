@@ -19,3 +19,4 @@ minimalist-grammar-parser = { git = "ssh://git@github.com/MichaelGoodale/minimal
 ] }
 anyhow = "1.0.98"
 logprob = "0.2.1"
+rand = "0.9.1"

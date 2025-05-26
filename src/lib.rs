@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 use anyhow::anyhow;
 use logprob::LogProb;
@@ -116,6 +116,58 @@ impl GrammarIterator {
 
 #[pymethods]
 impl PyLexicon {
+    fn mdl(&self, n_phonemes: u16) -> PyResult<f64> {
+        Ok(self.0.mdl_score(n_phonemes)?)
+    }
+
+    #[staticmethod]
+    fn random_lexicon(lemmas: Vec<String>) -> PyResult<Self> {
+        let mut rng = rand::rng();
+        let lex: Lexicon<_, u16> = Lexicon::random(&0, &lemmas, None, &mut rng);
+        Ok(PyLexicon(
+            lex.remap_lexicon(|x| x.clone(), |c| c.to_string()),
+        ))
+    }
+
+    #[pyo3(signature = (category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256, max_strings=None))]
+    fn generate_unique_strings(
+        &self,
+        category: String,
+        min_log_prob: f64,
+        move_prob: f64,
+        max_steps: usize,
+        n_beams: usize,
+        max_strings: Option<usize>,
+    ) -> PyResult<Vec<(Vec<String>, f64)>> {
+        let config = ParsingConfig::new(
+            LogProb::new(min_log_prob).map_err(|x| anyhow!(x.to_string()))?,
+            LogProb::from_raw_prob(move_prob).map_err(|x| anyhow!(x.to_string()))?,
+            max_steps,
+            n_beams,
+        );
+
+        let mut hashmap = HashMap::new();
+        for (prob, string, _) in Generator::new(&self.0, category, &config)? {
+            hashmap
+                .entry(string)
+                .and_modify(|old_log_prob: &mut LogProb<f64>| {
+                    *old_log_prob = old_log_prob.add_log_prob_clamped(prob)
+                })
+                .or_insert(prob);
+
+            if let Some(max_strings) = max_strings {
+                if hashmap.len() > max_strings {
+                    break;
+                }
+            }
+        }
+
+        Ok(hashmap
+            .into_iter()
+            .map(|(k, v)| (k, v.into_inner()))
+            .collect())
+    }
+
     #[pyo3(signature = (category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256, max_strings=None))]
     fn generate_grammar(
         slf: PyRef<'_, Self>,
