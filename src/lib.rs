@@ -1,8 +1,13 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+};
 
 use anyhow::anyhow;
 use logprob::LogProb;
-use minimalist_grammar_parser::{lexicon::Lexicon, Generator, Parser, ParsingConfig, RulePool};
+use minimalist_grammar_parser::{
+    lexicon::Lexicon, parsing::beam::Continuation, Generator, ParsingConfig, RulePool,
+};
 use pyo3::prelude::*;
 
 mod graphing;
@@ -114,10 +119,76 @@ impl GrammarIterator {
     }
 }
 
+#[pyclass(name = "Continuation", str, eq, frozen, hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+struct PyContinuation(Continuation<String>);
+
+impl Display for PyContinuation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.0 {
+            Continuation::Word(s) => write!(f, "{s}"),
+            Continuation::EndOfSentence => write!(f, "[EOS]"),
+        }
+    }
+}
+
+#[pymethods]
+impl PyContinuation {
+    #[new]
+    fn new(s: &str) -> Self {
+        match s {
+            "[EOS]" => PyContinuation(Continuation::EndOfSentence),
+            _ => PyContinuation(Continuation::Word(s.to_string())),
+        }
+    }
+
+    fn is_end_of_string(&self) -> bool {
+        matches!(self, PyContinuation(Continuation::EndOfSentence))
+    }
+
+    fn is_word(&self) -> bool {
+        matches!(self, PyContinuation(Continuation::Word(_)))
+    }
+}
+
 #[pymethods]
 impl PyLexicon {
     fn mdl(&self, n_phonemes: u16) -> PyResult<f64> {
-        Ok(self.0.mdl_score(n_phonemes)?)
+        Ok(self.0.mdl_score(n_phonemes).map_err(|e| anyhow!(e))?)
+    }
+
+    #[pyo3(signature = (prefix, category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256))]
+    fn continuations(
+        &self,
+        prefix: &str,
+        category: String,
+        min_log_prob: f64,
+        move_prob: f64,
+        max_steps: usize,
+        n_beams: usize,
+    ) -> PyResult<HashSet<PyContinuation>> {
+        let config = ParsingConfig::new(
+            LogProb::new(min_log_prob).map_err(|x| anyhow!(x.to_string()))?,
+            LogProb::from_raw_prob(move_prob).map_err(|x| anyhow!(x.to_string()))?,
+            max_steps,
+            n_beams,
+        );
+        let prefix = match prefix {
+            "" => vec![],
+            _ => prefix
+                .trim()
+                .split(" ")
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>(),
+        };
+
+        Ok(self
+            .0
+            .valid_continuations(category, &prefix, &config)
+            .map_err(|e| anyhow!(e.to_string()))?
+            .into_iter()
+            .map(PyContinuation)
+            .collect())
     }
 
     #[staticmethod]
@@ -147,7 +218,7 @@ impl PyLexicon {
         );
 
         let mut hashmap = HashMap::new();
-        for (prob, string, _) in Generator::new(&self.0, category, &config)? {
+        for (prob, string, _) in self.0.generate(category, &config).map_err(|e| anyhow!(e))? {
             hashmap
                 .entry(string)
                 .and_modify(|old_log_prob: &mut LogProb<f64>| {
@@ -162,9 +233,11 @@ impl PyLexicon {
             }
         }
 
-        Ok(hashmap
+        let mut values = hashmap.into_iter().collect::<Vec<_>>();
+        values.sort_by_key(|x| x.1);
+        Ok(values
             .into_iter()
-            .map(|(k, v)| (k, v.into_inner()))
+            .map(|(s, p)| (s, p.into_inner()))
             .collect())
     }
 
@@ -186,7 +259,11 @@ impl PyLexicon {
         );
         let py = slf.py();
         Ok(GrammarIterator {
-            gen: Generator::new(slf.0.clone(), category, &config)?,
+            gen: slf
+                .0
+                .clone()
+                .into_generate(category, &config)
+                .map_err(|e| anyhow!(e))?,
             max_strings,
             lexicon: slf.into_pyobject(py).unwrap().into(),
             n_strings: 0,
@@ -213,7 +290,10 @@ impl PyLexicon {
             n_beams,
         );
 
-        let parser = Parser::new(&slf.0, category, &s, &config)?;
+        let parser = slf
+            .0
+            .parse(&s, category, &config)
+            .map_err(|e| anyhow!(e.to_string()))?;
 
         let py = slf.py();
         let self_ref: Py<Self> = slf.clone().into_pyobject(py).unwrap().into();
@@ -241,7 +321,9 @@ impl PyLexicon {
 
     #[new]
     fn new(s: &str) -> PyResult<PyLexicon> {
-        Ok(PyLexicon(Lexicon::parse(s).unwrap().to_owned_values()))
+        Ok(PyLexicon(
+            Lexicon::from_string(s).unwrap().to_owned_values(),
+        ))
     }
 }
 
@@ -250,6 +332,7 @@ impl PyLexicon {
 #[pyo3(name = "_lib_name")]
 fn python_mg(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyLexicon>()?;
+    m.add_class::<PyContinuation>()?;
     m.add_class::<PySyntacticStructure>()?;
     m.add_class::<PyMgNode>()?;
     m.add_class::<PyMgEdge>()?;

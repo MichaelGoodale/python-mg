@@ -17,7 +17,7 @@ def to_string(sentences):
     return "\n".join(s)
 
 
-N_PER_BIN = 10
+N_PER_BIN = 50
 bins = [0 for _ in range(100)]
 
 bins[1] = N_PER_BIN
@@ -26,7 +26,7 @@ bins[8] = N_PER_BIN
 lemmas = [str(c) for c in [0, 1, 2, 3, 4, 5, 6]]
 n = 0
 
-with open(os.path.join(DIR, "probs.prob"), "w") as prob_f:
+with open(os.path.join(DIR, "mdl.prob"), "w") as prob_f:
     with open(os.path.join(DIR, "probs.hypo"), "w") as hypo_f:
         while not all(b >= N_PER_BIN for b in bins):
             print(bins)
