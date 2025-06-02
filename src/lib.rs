@@ -142,6 +142,12 @@ impl PyContinuation {
         }
     }
 
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn EOS() -> PyContinuation {
+        PyContinuation(Continuation::EndOfSentence)
+    }
+
     fn is_end_of_string(&self) -> bool {
         matches!(self, PyContinuation(Continuation::EndOfSentence))
     }

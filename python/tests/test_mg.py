@@ -19,5 +19,6 @@ def test_continuations():
     x = Lexicon("a::S= b= S\n::S\nb::b")
     assert x.continuations("a", "S") == {Continuation("b"), Continuation("a")}
     assert x.continuations("a b", "S") == {Continuation("[EOS]")}
+    assert x.continuations("a b", "S") == {Continuation.EOS()}
     assert x.continuations("a a", "S") == {Continuation("b"), Continuation("a")}
     assert x.continuations("a a b", "S") == {Continuation("b")}
