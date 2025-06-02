@@ -179,13 +179,9 @@ impl PyLexicon {
             max_steps,
             n_beams,
         );
-        let prefix = match prefix {
+        let prefix = match prefix.trim() {
             "" => vec![],
-            _ => prefix
-                .trim()
-                .split(" ")
-                .map(|x| x.to_string())
-                .collect::<Vec<_>>(),
+            _ => prefix.split(" ").map(|x| x.to_string()).collect::<Vec<_>>(),
         };
 
         Ok(self
