@@ -14,8 +14,8 @@ def test_lexicon():
 
 
 def test_continuations():
-    x = Lexicon("a::b= a\nb::b")
-    assert x.continuations("a", "a") == {Continuation("b")}
+    x = Lexicon("a::b= S\nb::b")
+    assert x.continuations("a", "S") == {Continuation("b")}
     x = Lexicon("a::S= b= S\n::S\nb::b")
     assert x.continuations("", "S") == {Continuation("[EOS]"), Continuation("a")}
     assert x.continuations("a", "S") == {Continuation("b"), Continuation("a")}

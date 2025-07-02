@@ -6,7 +6,7 @@ use std::{
 use anyhow::anyhow;
 use logprob::LogProb;
 use minimalist_grammar_parser::{
-    lexicon::Lexicon, parsing::beam::Continuation, Generator, ParsingConfig, RulePool,
+    lexicon::Lexicon, parsing::beam::Continuation, Generator, ParsingConfig, PhonContent, RulePool,
 };
 use pyo3::prelude::*;
 
@@ -17,7 +17,7 @@ use graphing::{PyMgEdge, PyMgNode};
 #[derive(Debug)]
 struct PySyntacticStructure {
     prob: LogProb<f64>,
-    string: Vec<String>,
+    string: Vec<PhonContent<String>>,
     rules: RulePool,
     lex: Py<PyLexicon>,
 }
@@ -30,7 +30,17 @@ impl PartialEq for PySyntacticStructure {
 
 impl Display for PySyntacticStructure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.string.join(" "))
+        let len = self.string.len();
+        for (i, x) in self.string.iter().enumerate() {
+            match x {
+                PhonContent::Normal(s) => write!(f, "{s}")?,
+                PhonContent::Affixed(items) => write!(f, "{}", items.join("-"))?,
+            };
+            if i != len - 1 {
+                write!(f, " ")?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -127,6 +137,7 @@ impl Display for PyContinuation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.0 {
             Continuation::Word(s) => write!(f, "{s}"),
+            Continuation::AffixedWord(s) => write!(f, "{}", s.join("-")),
             Continuation::EndOfSentence => write!(f, "[EOS]"),
         }
     }
@@ -142,6 +153,10 @@ impl PyContinuation {
         }
     }
 
+    fn __repr__(&self) -> String {
+        format!("Continuation({})", self)
+    }
+
     #[staticmethod]
     #[allow(non_snake_case)]
     fn EOS() -> PyContinuation {
@@ -154,6 +169,23 @@ impl PyContinuation {
 
     fn is_word(&self) -> bool {
         matches!(self, PyContinuation(Continuation::Word(_)))
+    }
+}
+
+fn map_string(s: &str) -> Vec<PhonContent<String>> {
+    match s.trim() {
+        "" => vec![],
+        _ => s
+            .split(" ")
+            .map(|x| {
+                let x = x.split("-").map(|x| x.to_string()).collect::<Vec<_>>();
+                if x.len() == 1 {
+                    PhonContent::Normal(x.first().unwrap().clone())
+                } else {
+                    PhonContent::Affixed(x)
+                }
+            })
+            .collect(),
     }
 }
 
@@ -179,10 +211,7 @@ impl PyLexicon {
             max_steps,
             n_beams,
         );
-        let prefix = match prefix.trim() {
-            "" => vec![],
-            _ => prefix.split(" ").map(|x| x.to_string()).collect::<Vec<_>>(),
-        };
+        let prefix = map_string(prefix);
 
         Ok(self
             .0
@@ -239,7 +268,17 @@ impl PyLexicon {
         values.sort_by_key(|x| x.1);
         Ok(values
             .into_iter()
-            .map(|(s, p)| (s, p.into_inner()))
+            .map(|(s, p)| {
+                (
+                    s.into_iter()
+                        .map(|x| match x {
+                            PhonContent::Normal(s) => s,
+                            PhonContent::Affixed(items) => items.join("-"),
+                        })
+                        .collect(),
+                    p.into_inner(),
+                )
+            })
             .collect())
     }
 
@@ -284,7 +323,7 @@ impl PyLexicon {
         n_beams: usize,
         max_parses: Option<usize>,
     ) -> PyResult<Vec<PySyntacticStructure>> {
-        let s = s.split(" ").map(|x| x.to_string()).collect::<Vec<_>>();
+        let s = map_string(s);
         let config = ParsingConfig::new(
             LogProb::new(min_log_prob).map_err(|x| anyhow!(x.to_string()))?,
             LogProb::from_raw_prob(move_prob).map_err(|x| anyhow!(x.to_string()))?,

@@ -49,17 +49,14 @@ impl Display for PyMgNode {
             } => write!(
                 f,
                 "{}::{}",
-                match lemma {
-                    Some(x) => x,
-                    None => "ε",
-                },
+                lemma.to_string("ε", "-"),
                 features
                     .iter()
                     .map(|x| x.to_string())
                     .collect::<Vec<_>>()
                     .join(" ")
             ),
-            MgNode::Trace(trace_id) => write!(f, "t{trace_id}"),
+            MgNode::Trace { trace, .. } => write!(f, "t{trace}"),
         }
     }
 }
@@ -67,24 +64,21 @@ impl Display for PyMgNode {
 #[pymethods]
 impl PyMgNode {
     fn is_trace(&self) -> bool {
-        matches!(self.0, MgNode::Trace(_))
+        matches!(self.0, MgNode::Trace { .. })
     }
 
     fn trace_id(&self) -> PyResult<usize> {
         match &self.0 {
             MgNode::Node { .. } | MgNode::Leaf { .. } => Err(anyhow::anyhow!("Not a trace node!"))?,
-            MgNode::Trace(trace_id) => Ok(trace_id.index()),
+            MgNode::Trace { trace, .. } => Ok(trace.index()),
         }
     }
 
     fn lemma_string(&self) -> String {
         match &self.0 {
             MgNode::Node { .. } => "".to_string(),
-            MgNode::Leaf { lemma, .. } => match lemma {
-                Some(s) => s.clone(),
-                None => "".to_string(),
-            },
-            MgNode::Trace(trace_id) => format!("t{trace_id}"),
+            MgNode::Leaf { lemma, .. } => lemma.to_string("ε", "-"),
+            MgNode::Trace { trace, .. } => format!("t{trace}"),
         }
     }
 }
