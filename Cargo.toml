@@ -1,7 +1,7 @@
 [package]
 name = "python-mg"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
@@ -14,7 +14,7 @@ pyo3 = { version = "0.24.0", features = [
   "extension-module",
   "generate-import-lib",
 ] }
-minimalist-grammar-parser = { git = "ssh://git@github.com/MichaelGoodale/minimalist-grammar-parser.git", features = [
+minimalist-grammar-parser = { git = "https://@github.com/MichaelGoodale/minimalist-grammar-parser.git", features = [
   "pretty",
 ] }
 anyhow = "1.0.98"

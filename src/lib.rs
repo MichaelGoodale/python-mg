@@ -6,7 +6,7 @@ use std::{
 use anyhow::anyhow;
 use logprob::LogProb;
 use minimalist_grammar_parser::{
-    lexicon::Lexicon, parsing::beam::Continuation, Generator, ParsingConfig, PhonContent, RulePool,
+    Generator, ParsingConfig, PhonContent, RulePool, lexicon::Lexicon, parsing::beam::Continuation,
 };
 use pyo3::prelude::*;
 
@@ -95,7 +95,7 @@ impl Display for PyLexicon {
 
 #[pyclass]
 struct GrammarIterator {
-    gen: Generator<Lexicon<String, String>, String, String>,
+    generator: Generator<Lexicon<String, String>, String, String>,
     max_strings: Option<usize>,
     n_strings: usize,
     lexicon: Py<PyLexicon>,
@@ -114,7 +114,7 @@ impl GrammarIterator {
             }
         }
 
-        if let Some((prob, string, rules)) = slf.gen.next() {
+        if let Some((prob, string, rules)) = slf.generator.next() {
             slf.n_strings += 1;
             let py = slf.py();
             Some(PySyntacticStructure {
@@ -300,7 +300,7 @@ impl PyLexicon {
         );
         let py = slf.py();
         Ok(GrammarIterator {
-            gen: slf
+            generator: slf
                 .0
                 .clone()
                 .into_generate(category, &config)
