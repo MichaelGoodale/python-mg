@@ -155,7 +155,7 @@ impl PyContinuation {
     }
 
     fn __repr__(&self) -> String {
-        format!("Continuation({})", self)
+        format!("Continuation({self})")
     }
 
     #[staticmethod]
@@ -170,6 +170,10 @@ impl PyContinuation {
 
     fn is_word(&self) -> bool {
         matches!(self, PyContinuation(Continuation::Word(_)))
+    }
+
+    fn is_multi_word(&self) -> bool {
+        matches!(self, PyContinuation(Continuation::AffixedWord(_)))
     }
 }
 

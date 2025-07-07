@@ -56,7 +56,7 @@ impl Display for PyMgNode {
                     .collect::<Vec<_>>()
                     .join(" ")
             ),
-            MgNode::Trace { trace, .. } => write!(f, "t{trace}"),
+            MgNode::Trace { trace, .. } => write!(f, "{trace}"),
         }
     }
 }
