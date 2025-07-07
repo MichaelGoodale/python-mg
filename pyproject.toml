@@ -11,15 +11,11 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dynamic = ["version"]
-dependencies = [
-    "rustworkx>=0.15.1",
-]
+dependencies = ["pillow>=10.4.0", "pydot>=4.0.1", "rustworkx>=0.15.1"]
 [tool.maturin]
 features = ["pyo3/extension-module"]
 python-source = "python"
 module-name = "python_mg._lib_name"
 
 [dependency-groups]
-dev = [
-    "pytest>=8.3.5",
-]
+dev = ["pytest>=8.3.5"]

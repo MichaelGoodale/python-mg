@@ -1,23 +1,5 @@
 from python_mg import Lexicon
 
-from rustworkx.visualization import graphviz_draw
-
-
-def display(node):
-    return {"label": str(node)}
-
-
-def edge_attr(edge):
-    return {"color": "red", "label": str(edge)}
-
-
-grammar = """
-everyone::d -k -q
-someone::d -k -q
-likes::d= V -v
-::v= +v +k +q t
-::V= +k d= +q v
-"""
 
 grammar = """
 ::V= C
@@ -35,7 +17,11 @@ which::N= D -W
 """
 lexicon = Lexicon(grammar)
 
-for p in lexicon.generate_grammar("C", max_strings=100):
+for p in lexicon.parse("which beer the queen drinks", "C"):
+    tree = p.to_tree()
+    tree.to_image().show()
+
+for p in lexicon.generate_grammar("C", max_strings=1):
     print(p)
     print(p.latex())
     tree = p.to_tree()

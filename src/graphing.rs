@@ -1,6 +1,6 @@
 use minimalist_grammar_parser::{
-    parsing::rules::{MGEdge, MgNode},
     Direction,
+    parsing::rules::{MGEdge, MgNode},
 };
 use pyo3::prelude::*;
 use std::fmt::Display;
@@ -108,5 +108,10 @@ impl Display for PyMgEdge {
 impl PyMgEdge {
     fn is_move(&self) -> bool {
         matches!(self.0, MGEdge::Move)
+    }
+
+    #[staticmethod]
+    fn move_edge() -> PyMgEdge {
+        PyMgEdge(MGEdge::Move)
     }
 }

@@ -1,7 +1,9 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from python_mg._lib_name import SyntacticStructure, MGNode, MGEdge
+from PIL import Image
 import rustworkx as rx
+from rustworkx.visualization import graphviz_draw
 
 
 def sort_key(G, e):
@@ -18,6 +20,16 @@ class Mover:
 @dataclass
 class Trace:
     trace: int
+
+
+def node_attrs(node):
+    return {"label": str(node), "ordering": "out"}
+
+
+def edge_attrs(edge: MGEdge) -> dict[str, str]:
+    if edge.is_move():
+        return {"style": "dashed", "constraint": "false"}
+    return {}
 
 
 class ParseTree:
@@ -58,6 +70,31 @@ class ParseTree:
     def base_string(self) -> list[str | Mover | Trace]:
         linear_order = self.__explore(self.root)
         return linear_order
+
+    def transform_movement(self) -> rx.PyDiGraph[MGNode, MGEdge]:
+        G = self.G.copy()
+        for _, (src, tgt) in self.movements.items():
+            src_parent, _, src_weight = G.in_edges(src)[0]
+            tgt_parent, _, tgt_weight = G.in_edges(tgt)[0]
+            G.remove_edge(src_parent, src)
+            G.remove_edge(tgt_parent, tgt)
+            G.add_edge(tgt_parent, src, tgt_weight)
+            G.add_edge(src_parent, tgt, src_weight)
+            G.add_edge(tgt, src, MGEdge.move_edge())
+        return G
+
+    def to_dot(self, **kwargs) -> str | None:
+        return self.transform_movement().to_dot(
+            node_attr=node_attrs, edge_attr=edge_attrs, **kwargs
+        )
+
+    def to_image(self, **kwargs) -> Image.Image | None:
+        return graphviz_draw(
+            self.transform_movement(),
+            node_attr_fn=node_attrs,
+            edge_attr_fn=edge_attrs,
+            **kwargs,
+        )
 
     def __explore(self, n_i: int) -> list[str | Mover | Trace]:
         out = []

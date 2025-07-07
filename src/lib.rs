@@ -67,7 +67,7 @@ impl PySyntacticStructure {
             .map(|n| (n.index(), PyMgNode(g.node_weight(n).unwrap().clone())))
             .collect::<Vec<_>>();
 
-        let edges = g
+        let mut edges = g
             .edge_indices()
             .map(|e| {
                 let (src, tgt) = g.edge_endpoints(e).unwrap();
@@ -79,6 +79,7 @@ impl PySyntacticStructure {
             })
             .collect::<Vec<_>>();
 
+        edges.sort_by_key(|(_, _, x)| x.0);
         (nodes, edges, root.index())
     }
 }
