@@ -16,6 +16,12 @@ uv run example.py
 
 Otherwise, you can also install it with `pip` or other tools as a wheel by getting it from [the GitHub actions page](https://github.com/MichaelGoodale/python-mg/actions)
 
+You can also add it to a uv project like so:
+
+```bash
+uv add git+https://github.com/MichaelGoodale/python-mg
+```
+
 ## Usage
 
 The following snippet declares a grammar, parses a sentence and generates a string in the grammar.
