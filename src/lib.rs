@@ -194,6 +194,28 @@ fn map_string(s: &str) -> Vec<PhonContent<String>> {
     }
 }
 
+fn get_config(
+    min_log_prob: Option<f64>,
+    move_prob: f64,
+    max_steps: Option<usize>,
+    n_beams: Option<usize>,
+) -> anyhow::Result<ParsingConfig> {
+    let mut config = ParsingConfig::empty()
+        .with_move_prob(LogProb::from_raw_prob(move_prob).map_err(|x| anyhow!(x.to_string()))?);
+
+    if let Some(min_log_prob) = min_log_prob {
+        config = config
+            .with_min_log_prob(LogProb::new(min_log_prob).map_err(|x| anyhow!(x.to_string()))?);
+    }
+    if let Some(max_steps) = max_steps {
+        config = config.with_max_steps(max_steps)
+    }
+    if let Some(n_beams) = n_beams {
+        config = config.with_max_beams(n_beams)
+    }
+    Ok(config)
+}
+
 #[pymethods]
 impl PyLexicon {
     fn mdl(&self, n_phonemes: u16) -> PyResult<f64> {
@@ -205,17 +227,12 @@ impl PyLexicon {
         &self,
         prefix: &str,
         category: String,
-        min_log_prob: f64,
+        min_log_prob: Option<f64>,
         move_prob: f64,
-        max_steps: usize,
-        n_beams: usize,
+        max_steps: Option<usize>,
+        n_beams: Option<usize>,
     ) -> PyResult<HashSet<PyContinuation>> {
-        let config = ParsingConfig::new(
-            LogProb::new(min_log_prob).map_err(|x| anyhow!(x.to_string()))?,
-            LogProb::from_raw_prob(move_prob).map_err(|x| anyhow!(x.to_string()))?,
-            max_steps,
-            n_beams,
-        );
+        let config = get_config(min_log_prob, move_prob, max_steps, n_beams)?;
         let prefix = map_string(prefix);
 
         Ok(self
@@ -240,19 +257,13 @@ impl PyLexicon {
     fn generate_unique_strings(
         &self,
         category: String,
-        min_log_prob: f64,
+        min_log_prob: Option<f64>,
         move_prob: f64,
-        max_steps: usize,
-        n_beams: usize,
+        max_steps: Option<usize>,
+        n_beams: Option<usize>,
         max_strings: Option<usize>,
     ) -> PyResult<Vec<(Vec<String>, f64)>> {
-        let config = ParsingConfig::new(
-            LogProb::new(min_log_prob).map_err(|x| anyhow!(x.to_string()))?,
-            LogProb::from_raw_prob(move_prob).map_err(|x| anyhow!(x.to_string()))?,
-            max_steps,
-            n_beams,
-        );
-
+        let config = get_config(min_log_prob, move_prob, max_steps, n_beams)?;
         let mut hashmap = HashMap::new();
         for (prob, string, _) in self.0.generate(category, &config).map_err(|e| anyhow!(e))? {
             hashmap
@@ -291,18 +302,14 @@ impl PyLexicon {
     fn generate_grammar(
         slf: PyRef<'_, Self>,
         category: String,
-        min_log_prob: f64,
+        min_log_prob: Option<f64>,
         move_prob: f64,
-        max_steps: usize,
-        n_beams: usize,
+        max_steps: Option<usize>,
+        n_beams: Option<usize>,
         max_strings: Option<usize>,
     ) -> PyResult<GrammarIterator> {
-        let config = ParsingConfig::new(
-            LogProb::new(min_log_prob).map_err(|x| anyhow!(x.to_string()))?,
-            LogProb::from_raw_prob(move_prob).map_err(|x| anyhow!(x.to_string()))?,
-            max_steps,
-            n_beams,
-        );
+        let config = get_config(min_log_prob, move_prob, max_steps, n_beams)?;
+
         let py = slf.py();
         Ok(GrammarIterator {
             generator: slf
@@ -322,20 +329,14 @@ impl PyLexicon {
         slf: PyRef<'_, Self>,
         s: &str,
         category: String,
-        min_log_prob: f64,
+        min_log_prob: Option<f64>,
         move_prob: f64,
-        max_steps: usize,
-        n_beams: usize,
+        max_steps: Option<usize>,
+        n_beams: Option<usize>,
         max_parses: Option<usize>,
     ) -> PyResult<Vec<PySyntacticStructure>> {
         let s = map_string(s);
-        let config = ParsingConfig::new(
-            LogProb::new(min_log_prob).map_err(|x| anyhow!(x.to_string()))?,
-            LogProb::from_raw_prob(move_prob).map_err(|x| anyhow!(x.to_string()))?,
-            max_steps,
-            n_beams,
-        );
-
+        let config = get_config(min_log_prob, move_prob, max_steps, n_beams)?;
         let parser = slf
             .0
             .parse(&s, category, &config)
