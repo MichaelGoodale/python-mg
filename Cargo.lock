@@ -62,9 +62,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.28"
+version = "1.2.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ad45f4f74e4e20eaa392913b7b33a7091c87e59628f4dd27888205ad888843c"
+checksum = "5c1599538de2394445747c8cf7935946e3cc27e9625f889d979bfb2aaf569362"
 dependencies = [
  "shlex",
 ]
@@ -262,7 +262,7 @@ checksum = "2687e6cf9c00f48e9284cf9fd15f2ef341d03cc7743abf9df4c5f07fdee50b18"
 [[package]]
 name = "minimalist-grammar-parser"
 version = "0.1.0"
-source = "git+https://github.com/MichaelGoodale/minimalist-grammar-parser.git#464612da1051ec2969fd07b64a974497c1dd4c0d"
+source = "git+https://github.com/MichaelGoodale/minimalist-grammar-parser.git#61d836ae83b8898b5998d447ac0710a60781dde7"
 dependencies = [
  "ahash",
  "bitvec",
@@ -581,7 +581,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 [[package]]
 name = "simple-semantics"
 version = "0.1.0"
-source = "git+https://github.com/MichaelGoodale/simple-semantics.git#94d00781a526ac1bfa33347c1b91d5642f048192"
+source = "git+https://github.com/MichaelGoodale/simple-semantics.git#5903b9cb92448cca3060daf32d4d564a0a709829"
 dependencies = [
  "ahash",
  "chumsky",

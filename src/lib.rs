@@ -61,7 +61,7 @@ impl PySyntacticStructure {
 
     #[allow(clippy::type_complexity)]
     fn __to_tree_inner(&self) -> (Vec<(usize, PyMgNode)>, Vec<(usize, usize, PyMgEdge)>, usize) {
-        let (g, root) = self.rules.to_tree(&self.lex.get().0);
+        let (g, root) = self.rules.to_petgraph(&self.lex.get().0);
         let nodes = g
             .node_indices()
             .map(|n| (n.index(), PyMgNode(g.node_weight(n).unwrap().clone())))
