@@ -9,7 +9,7 @@ def test_lexicon():
     parse = next(x.generate_grammar("a"))
     assert (
         parse.latex()
-        == "\\begin{forest}\n[{\\der{a}}\n\t[{\\plainlex{a}{\\cancel{b=} a}} ]\n\t[{\\plainlex{b}{\\cancel{b}}} ] ]\n\\end{forest}"
+        == "\\begin{forest}[\\der{a} [\\plainlex{b= a}{a}] [\\plainlex{b}{b}]]\\end{forest}"
     )
 
 

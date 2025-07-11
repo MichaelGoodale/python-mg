@@ -56,7 +56,7 @@ impl PySyntacticStructure {
 
     fn latex(&self) -> String {
         let lex = self.lex.get();
-        self.rules.to_latex(&lex.0)
+        self.rules.to_tree(&lex.0).to_latex()
     }
 
     #[allow(clippy::type_complexity)]

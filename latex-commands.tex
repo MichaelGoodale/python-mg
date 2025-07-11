@@ -1,24 +1,7 @@
-\usepackage{cancel}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{stmaryrd}
 \usepackage[linguistics]{forest}
-\usetikzlibrary{calc}
 
+\newcommand{\der}[1]{\texttt{#1}}
+\newcommand{\semder}[2]{\texttt{#2}\\{#2}}
 
-\newcommand{\mover}[3][]{{\ifthenelse{\isempty{#1}}{\texttt{#2}$_{#3}$}{\texttt{#2}$_{#3}^{\texttt{#1}}$}}}
-\newcommand{\der}[2][]{\ifthenelse{\isempty{#1}}{\texttt{#2}}{\texttt{#2}:$\left\{\text{#1}\right\}$}}
-\newcommand{\semder}[3][]{\ifthenelse{\isempty{#1}}{{\texttt{#2}}\\{#3}}{{\texttt{#2}:$\left\{\text{#1}\right\}$}\\{#3}}}
-\newcommand{\rulesemder}[3][]{\ifthenelse{\isempty{#1}}{{\texttt{#2}}\\{[\textsc{#3}]}}{{\texttt{#2}:$\left\{\text{#1}\right\}$}\\{[\textsc{#3}]}}}
-\newcommand{\semanticRule}[2][]{\ifthenelse{\isempty{#1}}{{\texttt{#2}}}{{\texttt{#2}}}}
-
-\newcommand{\plainlex}[2]{{#1}::{\texttt{#2}}}
-\newcommand{\lex}[3]{{#1}::{\texttt{#2}}::{$#3$}}
-\newcommand{\semlex}[3]{{#1}\\{\texttt{#2}}\\{\semanticRule{#3}}}
-
-\newcommand{\verticallex}[3]{{#1}\\{\texttt{#2}}\\{$#3$}}
-\newcommand{\verticalder}[2]{{\texttt{#1}}\\{$#2$}}
-\newcommand{\verticaldoubleder}[3]{{\texttt{#1}}\\{$#2$}\\{$#3$}}
-\newcommand{\verticaltripleder}[4]{{\texttt{#1}}\\{$#2$}\\{$#3$}\\{$#4$}}
-\newcommand{\oldder}[2]{{\texttt{#1}}:{$#2$}}
-\newcommand{\interp}[1]{\left\llbracket\text{#1}\right\rrbracket}
+\newcommand{\plainlex}[2]{{#1}\\{\texttt{#2}}}
+\newcommand{\lex}[3]{{#1}\\{\texttt{#2}}\\{#3}}
