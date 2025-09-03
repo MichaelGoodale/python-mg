@@ -7,7 +7,7 @@ from rustworkx.visualization import graphviz_draw
 
 
 def sort_key(G, e):
-    (_, n) = G.get_edge_endpoints_by_index(e)
+    (n, _) = G.get_edge_endpoints_by_index(e)
     return G.get_node_data(n).trace_id()
 
 
@@ -48,7 +48,7 @@ class ParseTree:
         multitrace_2_single_trace = {}
 
         for e in movement_edges:
-            (src, tgt) = G.get_edge_endpoints_by_index(e)
+            (tgt, src) = G.get_edge_endpoints_by_index(e)
             G.remove_edge_from_index(e)
             if G.get_node_data(src).is_trace():
                 new_trace_id = G.get_node_data(tgt).trace_id()
@@ -71,26 +71,12 @@ class ParseTree:
         linear_order = self.__explore(self.root)
         return linear_order
 
-    def transform_movement(self) -> rx.PyDiGraph[MGNode, MGEdge]:
-        G = self.G.copy()
-        for _, (src, tgt) in self.movements.items():
-            src_parent, _, src_weight = G.in_edges(src)[0]
-            tgt_parent, _, tgt_weight = G.in_edges(tgt)[0]
-            G.remove_edge(src_parent, src)
-            G.remove_edge(tgt_parent, tgt)
-            G.add_edge(tgt_parent, src, tgt_weight)
-            G.add_edge(src_parent, tgt, src_weight)
-            G.add_edge(tgt, src, MGEdge.move_edge())
-        return G
-
     def to_dot(self, **kwargs) -> str | None:
-        return self.transform_movement().to_dot(
-            node_attr=node_attrs, edge_attr=edge_attrs, **kwargs
-        )
+        return self.to_dot(node_attr=node_attrs, edge_attr=edge_attrs, **kwargs)
 
     def to_image(self, **kwargs) -> Image.Image | None:
         return graphviz_draw(
-            self.transform_movement(),
+            self.G,
             node_attr_fn=node_attrs,
             edge_attr_fn=edge_attrs,
             **kwargs,
