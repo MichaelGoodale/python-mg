@@ -6,7 +6,7 @@ import rustworkx as rx
 from rustworkx.visualization import graphviz_draw
 
 
-def sort_key(G, e):
+def sort_key(G: rx.PyDiGraph[MGNode, MGEdge], e: int) -> int:
     (n, _) = G.get_edge_endpoints_by_index(e)
     return G.get_node_data(n).trace_id()
 
@@ -22,7 +22,7 @@ class Trace:
     trace: int
 
 
-def node_attrs(node):
+def node_attrs(node: MGNode):
     return {"label": str(node), "ordering": "out"}
 
 
@@ -37,8 +37,8 @@ class ParseTree:
     def __init__(
         self, G: rx.PyDiGraph[MGNode, MGEdge], root: int, structure: SyntacticStructure
     ):
-        self.root = root
-        self.structure = structure
+        self.root: int = root
+        self.structure: SyntacticStructure = structure
         movement_edges = sorted(
             [x for x in G.filter_edges(lambda x: x.is_move())],
             key=lambda x: sort_key(G, x),
@@ -106,7 +106,7 @@ class ParseTree:
         return out
 
 
-def to_tree(self) -> ParseTree:
+def to_tree(self: SyntacticStructure) -> ParseTree:
     (nodes, edges, root) = self.__to_tree_inner()
 
     # This will usually be the identity function, but on the off chance its not, we do this.
@@ -119,7 +119,7 @@ def to_tree(self) -> ParseTree:
         old2new[old_node_i] = new_node
 
     for old_src, old_tgt, edge in edges:
-        G.add_edge(old2new[old_src], old2new[old_tgt], edge)
+        _ = G.add_edge(old2new[old_src], old2new[old_tgt], edge)
 
     return ParseTree(G, old2new[root], self)
 

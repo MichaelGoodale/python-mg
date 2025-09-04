@@ -1,5 +1,31 @@
 from typing import Iterator, Optional
 
+from python_mg.syntax import ParseTree
+
+class MGNode:
+    def is_trace(self) -> bool: ...
+    def trace_id(self) -> int:
+        """Gets the trace id of traces and raises an error otherwise"""
+
+    def lemma_string(self) -> str:
+        """Format the node as a string in a tree if leaf or trace"""
+
+    def __str__(self) -> str: ...
+    def __eq__(self, other: object) -> bool: ...
+    def __hash__(self) -> int: ...
+
+class MGEdge:
+    def is_move(self) -> bool:
+        """Checks whether the edge is a movement edge"""
+
+    @staticmethod
+    def move_edge() -> MGEdge:
+        """Gets a movement edge"""
+
+    def __str__(self) -> str: ...
+    def __eq__(self, other: object) -> bool: ...
+    def __hash__(self) -> int: ...
+
 class SyntacticStructure:
     """A parse tree for some string"""
 
@@ -19,6 +45,12 @@ class SyntacticStructure:
     def latex(self) -> str:
         """Return a LaTeX representation of this syntactic structure."""
 
+    def to_tree(self) -> ParseTree:
+        """Converts a syntactic structure into a graph structure"""
+
+    def __to_tree_inner(
+        self,
+    ) -> tuple[list[tuple[int, MGNode]], list[tuple[int, int, MGEdge]], int]: ...
     def __str__(self) -> str: ...
     def __eq__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
@@ -104,30 +136,6 @@ class Lexicon:
         """Returns a list of all possible parses of that string.
         The string, s, should be delimited by spaces for words and hyphens for multi-word expressions from head-movement
         """
-
-    def __str__(self) -> str: ...
-    def __eq__(self, other: object) -> bool: ...
-    def __hash__(self) -> int: ...
-
-class MGNode:
-    def is_trace(self) -> bool: ...
-    def trace_id(self) -> int:
-        """Gets the trace id of traces and raises an error otherwise"""
-
-    def lemma_string(self) -> str:
-        """Format the node as a string in a tree if leaf or trace"""
-
-    def __str__(self) -> str: ...
-    def __eq__(self, other: object) -> bool: ...
-    def __hash__(self) -> int: ...
-
-class MGEdge:
-    def is_move(self) -> bool:
-        """Checks whether the edge is a movement edge"""
-
-    @staticmethod
-    def move_edge() -> MGEdge:
-        """Gets a movement edge"""
 
     def __str__(self) -> str: ...
     def __eq__(self, other: object) -> bool: ...
