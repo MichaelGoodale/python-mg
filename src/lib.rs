@@ -6,7 +6,9 @@ use std::{
 use anyhow::anyhow;
 use logprob::LogProb;
 use minimalist_grammar_parser::{
-    Generator, ParsingConfig, PhonContent, RulePool, lexicon::Lexicon, parsing::beam::Continuation,
+    Generator, ParsingConfig, PhonContent, RulePool,
+    lexicon::{LexemeId, LexicalEntry, Lexicon},
+    parsing::beam::Continuation,
 };
 use pyo3::prelude::*;
 
@@ -50,18 +52,43 @@ impl PySyntacticStructure {
         self.prob.into_inner()
     }
 
+    fn contains_lexical_entry(&self, s: &str) -> PyResult<bool> {
+        let lex = self.lex.get();
+        let entry = LexicalEntry::parse(s)
+            .map_err(|e| anyhow!(e.to_string()))?
+            .remap(|x| x.to_string(), |x| x.to_string());
+        Ok(lex
+            .lexeme_to_id
+            .get(&entry)
+            .map(|x| self.rules.used_lemmas().any(|y| &y == x))
+            .unwrap_or(false))
+    }
+
+    fn contains_word(&self, mut s: Option<String>) -> bool {
+        let lex = self.lex.get();
+        if let Some(s_inner) = &s
+            && s_inner.is_empty()
+        {
+            s = None;
+        }
+        lex.lemma_to_id
+            .get(&s)
+            .map(|x| self.rules.used_lemmas().any(|y| x.contains(&y)))
+            .unwrap_or(false)
+    }
+
     fn prob(&self) -> f64 {
         self.prob.into_inner().exp()
     }
 
     fn latex(&self) -> String {
         let lex = self.lex.get();
-        self.rules.to_tree(&lex.0).to_latex()
+        self.rules.to_tree(&lex.lexicon).to_latex()
     }
 
     #[allow(clippy::type_complexity)]
     fn __to_tree_inner(&self) -> (Vec<(usize, PyMgNode)>, Vec<(usize, usize, PyMgEdge)>, usize) {
-        let (g, root) = self.rules.to_petgraph(&self.lex.get().0);
+        let (g, root) = self.rules.to_petgraph(&self.lex.get().lexicon);
         let nodes = g
             .node_indices()
             .map(|n| (n.index(), PyMgNode(g.node_weight(n).unwrap().clone())))
@@ -86,11 +113,15 @@ impl PySyntacticStructure {
 
 #[pyclass(name = "Lexicon", str, eq, frozen)]
 #[derive(Debug, Clone, Eq, PartialEq)]
-struct PyLexicon(Lexicon<String, String>);
+struct PyLexicon {
+    lexicon: Lexicon<String, String>,
+    lexeme_to_id: HashMap<LexicalEntry<String, String>, LexemeId>,
+    lemma_to_id: HashMap<Option<String>, Vec<LexemeId>>,
+}
 
 impl Display for PyLexicon {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "MGLexicon{{\n{}\n}}", self.0)
+        write!(f, "MGLexicon{{\n{}\n}}", self.lexicon)
     }
 }
 
@@ -216,10 +247,36 @@ fn get_config(
     Ok(config)
 }
 
+impl PyLexicon {
+    fn from_lexicon(lexicon: Lexicon<String, String>) -> PyResult<Self> {
+        let lexeme_to_id: HashMap<_, LexemeId> = lexicon
+            .lexemes_and_ids()
+            .map_err(|e| anyhow!(e))?
+            .map(|(id, entry)| (entry, id))
+            .collect();
+
+        let mut lemma_to_id = HashMap::default();
+
+        for leaf in lexicon.leaves().iter().copied() {
+            let lemma = lexicon
+                .leaf_to_lemma(leaf)
+                .expect("Invalid lexicon!")
+                .clone();
+            lemma_to_id.entry(lemma).or_insert(vec![]).push(leaf);
+        }
+
+        Ok(PyLexicon {
+            lexicon,
+            lexeme_to_id,
+            lemma_to_id,
+        })
+    }
+}
+
 #[pymethods]
 impl PyLexicon {
     fn mdl(&self, n_phonemes: u16) -> PyResult<f64> {
-        Ok(self.0.mdl_score(n_phonemes).map_err(|e| anyhow!(e))?)
+        Ok(self.lexicon.mdl_score(n_phonemes).map_err(|e| anyhow!(e))?)
     }
 
     #[pyo3(signature = (prefix, category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256))]
@@ -236,7 +293,7 @@ impl PyLexicon {
         let prefix = map_string(prefix);
 
         Ok(self
-            .0
+            .lexicon
             .valid_continuations(category, &prefix, &config)
             .map_err(|e| anyhow!(e.to_string()))?
             .into_iter()
@@ -247,10 +304,9 @@ impl PyLexicon {
     #[staticmethod]
     fn random_lexicon(lemmas: Vec<String>) -> PyResult<Self> {
         let mut rng = rand::rng();
-        let lex: Lexicon<_, u16> = Lexicon::random(&0, &lemmas, None, &mut rng);
-        Ok(PyLexicon(
-            lex.remap_lexicon(|x| x.clone(), |c| c.to_string()),
-        ))
+        let lexicon: Lexicon<_, u16> = Lexicon::random(&0, &lemmas, None, &mut rng);
+        let lexicon = lexicon.remap_lexicon(|x| x.clone(), |c| c.to_string());
+        PyLexicon::from_lexicon(lexicon)
     }
 
     #[pyo3(signature = (category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256, max_strings=None))]
@@ -265,7 +321,11 @@ impl PyLexicon {
     ) -> PyResult<Vec<(Vec<String>, f64)>> {
         let config = get_config(min_log_prob, move_prob, max_steps, n_beams)?;
         let mut hashmap = HashMap::new();
-        for (prob, string, _) in self.0.generate(category, &config).map_err(|e| anyhow!(e))? {
+        for (prob, string, _) in self
+            .lexicon
+            .generate(category, &config)
+            .map_err(|e| anyhow!(e))?
+        {
             hashmap
                 .entry(string)
                 .and_modify(|old_log_prob: &mut LogProb<f64>| {
@@ -313,7 +373,7 @@ impl PyLexicon {
         let py = slf.py();
         Ok(GrammarIterator {
             generator: slf
-                .0
+                .lexicon
                 .clone()
                 .into_generate(category, &config)
                 .map_err(|e| anyhow!(e))?,
@@ -338,7 +398,7 @@ impl PyLexicon {
         let s = map_string(s);
         let config = get_config(min_log_prob, move_prob, max_steps, n_beams)?;
         let parser = slf
-            .0
+            .lexicon
             .parse(&s, category, &config)
             .map_err(|e| anyhow!(e.to_string()))?;
 
@@ -368,9 +428,7 @@ impl PyLexicon {
 
     #[new]
     fn new(s: &str) -> PyResult<PyLexicon> {
-        Ok(PyLexicon(
-            Lexicon::from_string(s).unwrap().to_owned_values(),
-        ))
+        PyLexicon::from_lexicon(Lexicon::from_string(s).unwrap().to_owned_values())
     }
 }
 

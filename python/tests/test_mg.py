@@ -23,6 +23,36 @@ def test_continuations():
     assert x.continuations("a b", "S") == {Continuation.EOS()}
     assert x.continuations("a a", "S") == {Continuation("b"), Continuation("a")}
     assert x.continuations("a a b", "S") == {Continuation("b")}
+
+    parses = x.parse("a a b b", "S")
+    for parse in parses:
+        assert parse.contains_word("a")
+        assert parse.contains_word("b")
+        assert parse.contains_word("")
+        assert parse.contains_word(None)
+        assert not parse.contains_word("c")
+
+    x = Lexicon("a::B= S\na::S\nb::B")
+    for parse in x.parse("a", "S"):
+        assert parse.contains_word("a")
+        assert not parse.contains_word("b")
+        assert not parse.contains_word("")
+        assert not parse.contains_word(None)
+        assert not parse.contains_word("c")
+        assert not parse.contains_lexical_entry("a::B= S")
+        assert not parse.contains_lexical_entry("b::B")
+        assert parse.contains_lexical_entry("a::S")
+
+    for parse in x.parse("a b", "S"):
+        assert parse.contains_word("a")
+        assert parse.contains_word("b")
+        assert not parse.contains_word("")
+        assert not parse.contains_word(None)
+        assert not parse.contains_word("c")
+        assert parse.contains_lexical_entry("a::B= S")
+        assert parse.contains_lexical_entry("b::B")
+        assert not parse.contains_lexical_entry("a::S")
+
     lexicon = Lexicon(
         """::T<= +q Q
 what::d[in] -subj3 -q -wh
