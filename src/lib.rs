@@ -86,6 +86,10 @@ impl PySyntacticStructure {
         self.rules.to_tree(&lex.lexicon).to_latex()
     }
 
+    fn max_memory_load(&self) -> usize {
+        self.rules.max_memory_load()
+    }
+
     #[allow(clippy::type_complexity)]
     fn __to_tree_inner(&self) -> (Vec<(usize, PyMgNode)>, Vec<(usize, usize, PyMgEdge)>, usize) {
         let (g, root) = self.rules.to_petgraph(&self.lex.get().lexicon);

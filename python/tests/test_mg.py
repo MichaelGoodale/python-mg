@@ -13,6 +13,15 @@ def test_lexicon():
     )
 
 
+def test_memory_load():
+    grammar = Lexicon("a::b= c= +a +e C\nb::b -a\nc::c -e")
+    parse = grammar.parse("c b a", "C")[0]
+    assert parse.max_memory_load() == 2
+    grammar = Lexicon("a::b= +a c= +e C\nb::b -a\nc::c -e")
+    parse = grammar.parse("c b a", "C")[0]
+    assert parse.max_memory_load() == 1
+
+
 def test_continuations():
     x = Lexicon("a::b= S\nb::b")
     assert x.continuations("a", "S") == {Continuation("b")}

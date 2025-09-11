@@ -40,6 +40,9 @@ class SyntacticStructure:
     def to_tree(self) -> ParseTree:
         """Converts a syntactic structure into a graph structure"""
 
+    def max_memory_load(self) -> int:
+        """Gets the largest amount of movers at a single point"""
+
     def __to_tree_inner(
         self,
     ) -> tuple[list[tuple[int, MGNode]], list[tuple[int, int, MGEdge]], int]: ...
@@ -47,7 +50,7 @@ class SyntacticStructure:
 class Continuation:
     """A continuation of a prefix string"""
 
-    def __init__(self) -> None: ...
+    def __init__(self, word: str) -> None: ...
     @staticmethod
     def EOS() -> "Continuation": ...
     def is_end_of_string(self) -> bool:
