@@ -17,12 +17,14 @@ which::N= D -W
 """
 lexicon = Lexicon(grammar)
 
+print(lexicon.tokens())
 for p in lexicon.parse("which beer the queen drinks", "C"):
     tree = p.to_tree()
     tree.to_image().show()
 
 for p in lexicon.generate_grammar("C", max_strings=50):
     print(p)
+    print(p.tokens())
     print(p.latex())
     print(p.log_prob())
     print(p.prob())

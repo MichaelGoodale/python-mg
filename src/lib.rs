@@ -15,6 +15,8 @@ use pyo3::prelude::*;
 mod graphing;
 use graphing::{PyMgEdge, PyMgNode};
 
+use crate::tokenizers::TokenMap;
+
 #[pyclass(name = "SyntacticStructure", str, eq, frozen)]
 #[derive(Debug)]
 struct PySyntacticStructure {
@@ -119,9 +121,12 @@ impl PySyntacticStructure {
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct PyLexicon {
     lexicon: Lexicon<String, String>,
+    word_id: TokenMap,
     lexeme_to_id: HashMap<LexicalEntry<String, String>, LexemeId>,
     lemma_to_id: HashMap<Option<String>, Vec<LexemeId>>,
 }
+
+mod tokenizers;
 
 impl Display for PyLexicon {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -260,12 +265,16 @@ impl PyLexicon {
             .collect();
 
         let mut lemma_to_id = HashMap::default();
+        let mut word_id = TokenMap::default();
 
         for leaf in lexicon.leaves().iter().copied() {
             let lemma = lexicon
                 .leaf_to_lemma(leaf)
                 .expect("Invalid lexicon!")
                 .clone();
+            if let Some(word) = lemma.as_ref() {
+                word_id.add_word(word.as_str());
+            }
             lemma_to_id.entry(lemma).or_insert(vec![]).push(leaf);
         }
 
@@ -273,6 +282,7 @@ impl PyLexicon {
             lexicon,
             lexeme_to_id,
             lemma_to_id,
+            word_id,
         })
     }
 }
