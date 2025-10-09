@@ -24,6 +24,8 @@ for p in lexicon.parse("which beer the queen drinks", "C"):
 for p in lexicon.generate_grammar("C", max_strings=50):
     print(p)
     print(p.latex())
+    print(p.log_prob())
+    print(p.prob())
     tree = p.to_tree()
     print(tree.normal_string())
     print(tree.base_string())
