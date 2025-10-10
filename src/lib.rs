@@ -287,6 +287,48 @@ impl PyLexicon {
     }
 }
 
+impl PyLexicon {
+    fn inner_parse(
+        slf: PyRef<'_, Self>,
+        s: &[PhonContent<String>],
+        category: String,
+        min_log_prob: Option<f64>,
+        move_prob: f64,
+        max_steps: Option<usize>,
+        n_beams: Option<usize>,
+        max_parses: Option<usize>,
+    ) -> PyResult<Vec<PySyntacticStructure>> {
+        let config = get_config(min_log_prob, move_prob, max_steps, n_beams)?;
+        let parser = slf
+            .lexicon
+            .parse(&s, category, &config)
+            .map_err(|e| anyhow!(e.to_string()))?;
+
+        let py = slf.py();
+        let self_ref: Py<Self> = slf.clone().into_pyobject(py).unwrap().into();
+        if let Some(max_parses) = max_parses {
+            Ok(parser
+                .take(max_parses)
+                .map(|(prob, string, rules)| PySyntacticStructure {
+                    prob,
+                    rules,
+                    string: string.to_vec(),
+                    lex: self_ref.clone_ref(py),
+                })
+                .collect())
+        } else {
+            Ok(parser
+                .map(|(prob, string, rules)| PySyntacticStructure {
+                    prob,
+                    rules,
+                    string: string.to_vec(),
+                    lex: self_ref.clone_ref(py),
+                })
+                .collect())
+        }
+    }
+}
+
 #[pymethods]
 impl PyLexicon {
     fn mdl(&self, n_phonemes: u16) -> PyResult<f64> {
@@ -410,34 +452,16 @@ impl PyLexicon {
         max_parses: Option<usize>,
     ) -> PyResult<Vec<PySyntacticStructure>> {
         let s = map_string(s);
-        let config = get_config(min_log_prob, move_prob, max_steps, n_beams)?;
-        let parser = slf
-            .lexicon
-            .parse(&s, category, &config)
-            .map_err(|e| anyhow!(e.to_string()))?;
-
-        let py = slf.py();
-        let self_ref: Py<Self> = slf.clone().into_pyobject(py).unwrap().into();
-        if let Some(max_parses) = max_parses {
-            Ok(parser
-                .take(max_parses)
-                .map(|(prob, string, rules)| PySyntacticStructure {
-                    prob,
-                    rules,
-                    string: string.to_vec(),
-                    lex: self_ref.clone_ref(py),
-                })
-                .collect())
-        } else {
-            Ok(parser
-                .map(|(prob, string, rules)| PySyntacticStructure {
-                    prob,
-                    rules,
-                    string: string.to_vec(),
-                    lex: self_ref.clone_ref(py),
-                })
-                .collect())
-        }
+        PyLexicon::inner_parse(
+            slf,
+            &s,
+            category,
+            min_log_prob,
+            move_prob,
+            max_steps,
+            n_beams,
+            max_parses,
+        )
     }
 
     #[new]

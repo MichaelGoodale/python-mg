@@ -74,7 +74,7 @@ class ParseTree:
     def to_dot(self, **kwargs) -> str | None:
         return self.to_dot(node_attr=node_attrs, edge_attr=edge_attrs, **kwargs)
 
-    def to_image(self, **kwargs) -> Image.Image | None:
+    def to_image(self, **kwargs) -> Image.Image:
         return graphviz_draw(
             self.G,
             node_attr_fn=node_attrs,

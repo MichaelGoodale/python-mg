@@ -1,4 +1,6 @@
-from typing import Iterator, Optional
+from typing import Sequence
+import numpy as np
+import numpy.typing as npt
 
 from python_mg.syntax import ParseTree
 
@@ -42,6 +44,9 @@ class SyntacticStructure:
 
     def max_memory_load(self) -> int:
         """Gets the largest amount of movers at a single point"""
+
+    def tokens(self) -> npt.NDArray[np.int_]:
+        """Converts the string of this SyntacticStructure into a tokenized numpy array"""
 
     def __to_tree_inner(
         self,
@@ -124,3 +129,27 @@ class Lexicon:
         """Returns a list of all possible parses of that string.
         The string, s, should be delimited by spaces for words and hyphens for multi-word expressions from head-movement
         """
+
+    def parse_tokens(
+        self,
+        s: Sequence[int] | npt.NDArray[np.int_],
+        category: str,
+        min_log_prob: float | None = -128.0,
+        move_prob: float = 0.5,
+        max_steps: int | None = 64,
+        n_beams: int | None = 256,
+        max_strings: int | None = None,
+    ) -> list[SyntacticStructure]:
+        """Returns a list of all possible parses of a string represented by tokens."""
+
+    def tokens(self) -> dict[str, int]:
+        """Returns the mapping from strings to token IDS"""
+
+    def detokenize(self, s: Sequence[int] | npt.NDArray[np.int_]) -> list[str]:
+        """Takes a sequence of tokens and converts them to their strings"""
+
+    def detokenize_batch(
+        self,
+        s: Sequence[Sequence[int]] | list[npt.NDArray[np.int_]] | npt.NDArray[np.int_],
+    ) -> list[list[str]]:
+        """Takes a sequence of tokens and converts them to their strings"""
