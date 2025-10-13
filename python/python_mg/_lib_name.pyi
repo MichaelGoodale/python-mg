@@ -153,3 +153,16 @@ class Lexicon:
         s: Sequence[Sequence[int]] | list[npt.NDArray[np.int_]] | npt.NDArray[np.int_],
     ) -> list[list[str]]:
         """Takes a sequence of tokens and converts them to their strings"""
+
+    def token_continuations(
+        self,
+        x: npt.NDArray[np.int_],
+        category: str,
+        min_log_prob: float | None = -128.0,
+        move_prob: float = 0.5,
+        max_steps: int | None = 64,
+        n_beams: int | None = 256,
+    ) -> npt.NDArray[np.bool]:
+        """Takes a [.., N, L] numpy array of strings in a grammar and returns the valid next move for each index as a [..., N, L, C] boolean array.
+        L corresponds to length of maximum strings, N to the number of strings and C to the number of words in the grammar.
+        """

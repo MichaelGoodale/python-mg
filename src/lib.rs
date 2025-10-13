@@ -288,6 +288,7 @@ impl PyLexicon {
 }
 
 impl PyLexicon {
+    #[allow(clippy::too_many_arguments)]
     fn inner_parse(
         slf: PyRef<'_, Self>,
         s: &[PhonContent<String>],
@@ -301,7 +302,7 @@ impl PyLexicon {
         let config = get_config(min_log_prob, move_prob, max_steps, n_beams)?;
         let parser = slf
             .lexicon
-            .parse(&s, category, &config)
+            .parse(s, category, &config)
             .map_err(|e| anyhow!(e.to_string()))?;
 
         let py = slf.py();

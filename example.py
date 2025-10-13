@@ -20,27 +20,43 @@ which::N= D -W
 """
 lexicon = Lexicon(grammar)
 
-print(lexicon.tokens())
+tokens = lexicon.tokens()
+rev_tokens = {v: k for k, v in tokens.items()}
 for p in lexicon.parse("which beer the queen drinks", "C"):
     tree = p.to_tree()
     tree.to_image().show()
 
 
 batch: list[npt.NDArray[np.int_]] = []
-for p in lexicon.generate_grammar("C", max_strings=10):
+for p in lexicon.generate_grammar("C", max_strings=100):
     batch.append(p.tokens())
-print(lexicon.detokenize_batch(batch))
+m = max(len(b) for b in batch)
+z = np.zeros((len(batch), m), dtype=batch[0].dtype)
+z.fill(2)
 
-for p in lexicon.generate_grammar("C", max_strings=50):
-    print(p)
-    tokens = p.tokens()
-    print(tokens)
-    print(lexicon.detokenize(tokens))
-    print(lexicon.detokenize(tokens.tolist()))
-    print(lexicon.parse_tokens(tokens, "C"))
-    print(p.latex())
-    print(p.log_prob())
-    print(p.prob())
-    tree = p.to_tree()
-    print(tree.normal_string())
-    print(tree.base_string())
+for i in range(len(batch)):
+    z[i, : len(batch[i])] = batch[i]
+
+cont = lexicon.token_continuations(z, "C")[:, :-1, :]
+
+out = np.eye(len(tokens))[z]
+
+
+for i in range(len(z[0]) - 1):
+    print(lexicon.detokenize(batch[0]))
+    print([rev_tokens[s] for s in cont[0, i, :].nonzero()[0]])
+
+
+# for p in lexicon.generate_grammar("C", max_strings=50):
+#    print(p)
+#    tokens = p.tokens()
+#    print(tokens)
+#    print(lexicon.detokenize(tokens))
+#    print(lexicon.detokenize(tokens.tolist()))
+#    print(lexicon.parse_tokens(tokens, "C"))
+#    print(p.latex())
+#    print(p.log_prob())
+#    print(p.prob())
+#    tree = p.to_tree()
+#    print(tree.normal_string())
+#    print(tree.base_string())
