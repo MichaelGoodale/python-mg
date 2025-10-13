@@ -1,4 +1,5 @@
 import pytest
+import pickle
 
 from python_mg import Lexicon, Continuation
 
@@ -11,6 +12,12 @@ def test_lexicon():
         parse.latex()
         == "\\begin{forest}[\\der{a} [\\plainlex{b= a}{a}] [\\plainlex{b}{b}]]\\end{forest}"
     )
+
+
+def test_pickling():
+    x = Lexicon("a::b= a\nb::b")
+    x_pickle = pickle.dumps(x)
+    assert pickle.loads(x_pickle) == x
 
 
 def test_memory_load():

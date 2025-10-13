@@ -117,7 +117,7 @@ impl PySyntacticStructure {
     }
 }
 
-#[pyclass(name = "Lexicon", str, eq, frozen)]
+#[pyclass(name = "Lexicon", str, eq, frozen, module = "python_mg")]
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct PyLexicon {
     lexicon: Lexicon<String, String>,
@@ -332,6 +332,10 @@ impl PyLexicon {
 
 #[pymethods]
 impl PyLexicon {
+    fn __getnewargs__(&self) -> (String,) {
+        (self.lexicon.to_string(),)
+    }
+
     fn mdl(&self, n_phonemes: u16) -> PyResult<f64> {
         Ok(self.lexicon.mdl_score(n_phonemes).map_err(|e| anyhow!(e))?)
     }
