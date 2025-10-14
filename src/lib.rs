@@ -83,6 +83,10 @@ impl PySyntacticStructure {
         self.prob.into_inner().exp()
     }
 
+    fn n_steps(&self) -> usize {
+        self.rules.n_steps()
+    }
+
     fn latex(&self) -> String {
         let lex = self.lex.get();
         self.rules.to_tree(&lex.lexicon).to_latex()

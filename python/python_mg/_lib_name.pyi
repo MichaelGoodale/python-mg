@@ -27,6 +27,9 @@ class SyntacticStructure:
     def log_prob(self) -> float:
         """Return the log probability."""
 
+    def n_steps(self) -> int:
+        """Returns the number of steps in the derivation of this structure"""
+
     def contains_lexical_entry(self, s: str) -> bool:
         """Check if this structure contains a specific lexical entry (formatted as an MG entry, will raise an error if unparseable)"""
 
