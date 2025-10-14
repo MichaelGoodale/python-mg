@@ -57,3 +57,18 @@ for p in lexicon.generate_grammar("C", max_strings=1):
 ```
 
 The parse tree can also be turned into LaTeX code with Forest (see [`latex-commands.tex`](https://github.com/MichaelGoodale/python-mg/blob/master/latex-commands.tex)) or can be directly turned into a GraphViz Dot file.
+
+## Examples
+
+There are some examples of how to apply the code in the [examples directory](./examples/)
+
+These include:
+
+- [A script for training a transformer on an MG](examples/train_llm_from_mg.py)
+
+Some of the scripts require extra dependencies.
+You can test them with the following command in `uv`
+
+```bash
+uv run --group examples examples/train_llm_from_mg.py
+```
