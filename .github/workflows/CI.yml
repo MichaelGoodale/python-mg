@@ -28,12 +28,16 @@ jobs:
           python-version: 3.x
       - uses: PyO3/maturin-action@v1
         with:
-          command: develop
-      - name: Install dependencies
+          command: build
+      - name: Build sphinx
+        shell: bash
         run: |
+          set -e
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install python-mg --find-links dist --force-reinstall
+          pip install pytest
           pip install sphinx sphinx_rtd_theme
-      - name: Sphinx build
-        run: |
           sphinx-build docs/source _build
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
