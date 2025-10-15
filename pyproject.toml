@@ -23,7 +23,12 @@ python-source = "python"
 module-name = "python_mg._lib_name"
 
 [dependency-groups]
-dev = ["patchelf>=0.17.2.2", "pytest>=8.3.5"]
+dev = [
+    "patchelf>=0.17.2.2",
+    "pytest>=8.3.5",
+    "sphinx>=7.1.2",
+    "sphinx-rtd-theme>=3.0.2",
+]
 examples = [
     "datasets>=3.1.0",
     "scipy>=1.10.1",

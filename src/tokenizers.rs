@@ -111,14 +111,55 @@ fn to_phon_content(s: &[usize], lex: &TokenMap) -> PyResult<Vec<PhonContent<Stri
 
 #[pymethods]
 impl PyLexicon {
+    ///Gets a dictionary of the word to token ID mapping of this lexicon
+    ///
+    ///Returns
+    ///-------
+    ///dictionary of (str, int)
+    ///    Dictionary with string to token ID mapping.
     fn tokens(&self) -> &HashMap<String, usize> {
         &self.word_id.0
     }
 
     #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (x, category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256))]
-    /// Takes a numpy array of `[..., N, L]` and returns a numpy array of `[..., N, L, X]` which
-    /// contains a boolean value indicating whether an index is a valid move AFTER `X`
+    ///Compute valid next token continuations for grammar sequences.
+    ///
+    ///Takes an array of token sequences in a grammar and returns a boolean mask
+    ///indicating which tokens are valid continuations at each position.
+    ///
+    ///Parameters
+    ///----------
+    ///x : ndarray of uint, shape (..., N, L)
+    ///    Input token sequences where N is the number of sequences and L is the
+    ///    maximum sequence length.
+    ///category : str
+    ///    The syntactic category of the parsed strings
+    ///min_log_prob : float or None, optional
+    ///    Minimum log probability threshold for the parser to consider
+    ///move_prob : float, optional
+    ///    Probability of preferring a move over a merge when parsing.
+    ///    Default is 0.5
+    ///max_steps : int or None, optional
+    ///    Maximum number of derivation steps. If None, will not be limited.
+    ///    Default is 64.
+    ///n_beams : int or None, optional
+    ///    Number of beams to maintain while parsing. If none, will not be limited.
+    ///    Default is 256.
+    ///Returns
+    ///-------
+    ///ndarray of bool, shape (..., N, L, C)
+    ///    Boolean mask indicating valid next tokens for each position, where C is
+    ///    the number of tokens in the grammar vocabulary.
+    ///
+    ///Notes
+    ///-----
+    ///The output dimensions correspond to:
+    ///
+    ///    - `...`: Misc batch dimensions (preserved from input)
+    ///    - `N`: Number of sequences
+    ///    - `L`: Maximum sequence length
+    ///    - `C`: Grammar vocabulary size
     fn token_continuations<'py>(
         slf: PyRef<'py, Self>,
         x: PyReadonlyArrayDyn<'py, usize>,
@@ -251,6 +292,17 @@ impl PyLexicon {
         Ok(v)
     }
 
+    /// Convert a batch of sequence of tokens to their corresponding strings.
+    ///
+    /// Parameters
+    /// ----------
+    /// s : Sequence[Sequence[int]], npt.NDArray[np.uint] or list[npt.NDArray[np.uint]]
+    ///     A sequence or array of token IDs to be converted to strings.
+    ///
+    /// Returns
+    /// -------
+    /// list[list[str]]
+    ///     List of list of strings corresponding to the input tokens.
     fn detokenize_batch(&self, batch: Vec<Vec<usize>>) -> Vec<Vec<String>> {
         batch
             .iter()
@@ -268,6 +320,17 @@ impl PyLexicon {
             .collect()
     }
 
+    /// Convert a sequence of tokens to their corresponding strings.
+    ///
+    /// Parameters
+    /// ----------
+    /// s : Sequence[int] or npt.NDArray[np.uint]
+    ///     A sequence or array of token IDs to be converted to strings.
+    ///
+    /// Returns
+    /// -------
+    /// list[str]
+    ///     List of strings corresponding to the input tokens.
     fn detokenize(&self, s: Vec<usize>) -> Vec<String> {
         s.into_iter()
             .map(|x| {
@@ -282,6 +345,30 @@ impl PyLexicon {
 
     #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (s, category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256, max_parses=None))]
+    ///Converts a sequence of tokens into a list of SyntacticStructure. Will throw a ValueError if
+    ///the tokens are not formatted properly (but the list will be  empty if there is no parse).
+    ///
+    ///Parameters
+    ///----------
+    ///x : ndarray of uint, shape (L,)
+    ///    Input token sequences where L is the sequence length
+    ///category : str
+    ///    The syntactic category of the parsed strings
+    ///min_log_prob : float or None, optional
+    ///    Minimum log probability threshold for the parser to consider
+    ///move_prob : float, optional
+    ///    Probability of preferring a move over a merge when parsing.
+    ///    Default is 0.5
+    ///max_steps : int or None, optional
+    ///    Maximum number of derivation steps. If None, will not be limited.
+    ///    Default is 64.
+    ///n_beams : int or None, optional
+    ///    Number of beams to maintain while parsing. If none, will not be limited.
+    ///    Default is 256.
+    ///Returns
+    ///-------
+    ///    list of :meth:`python_mg.SyntacticStructure`
+    ///    List of all parses of the token string
     fn parse_tokens(
         slf: PyRef<'_, Self>,
         s: Vec<usize>,
@@ -308,6 +395,12 @@ impl PyLexicon {
 
 #[pymethods]
 impl PySyntacticStructure {
+    ///Converts the SyntacticStructure to a tokenized representation of its string.
+    ///
+    ///Returns
+    ///-------
+    ///ndarray of uint
+    ///    the tokenized string.
     fn tokens<'py>(slf: PyRef<'py, Self>) -> Bound<'py, PyArray1<usize>> {
         let tokens = slf.lex.get().tokens();
 

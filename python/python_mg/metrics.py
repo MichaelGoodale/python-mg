@@ -10,6 +10,26 @@ def grammar_f1(
     preds: npt.NDArray[np.float64],
     correct: npt.NDArray[np.bool],
 ) -> dict[str, npt.NDArray[np.float64]]:
+    """
+    Compute grammar F1 scores from boolean arrays of valid next moves and predictions.
+    The metric is described in  `Meta-Learning Neural Mechanisms rather than Bayesian Priors <https://aclanthology.org/2025.acl-long.860/>`_ (Goodale et al., ACL 2025)
+
+    Parameters
+    ----------
+    preds : ndarray of float64
+        Predicted log probabilities for each token. Shape (..., seq_length, vocab_size).
+    correct: ndarray of int
+        Boolean array for each valid token that can come next at that point in the sequence. Shape (..., seq_length, vocab_size).
+
+    Returns
+    -------
+    dict of str : ndarray of float64
+        Dictionary containing numpy arrays with keys:
+
+        - 'precision': Precision scores
+        - 'recall': Recall scores
+        - 'f1': F1 scores
+    """
     if preds.shape != correct.shape:
         raise ValueError("correct and preds must have matching shapes")
 
@@ -46,6 +66,49 @@ def grammar_f1_from_strings(
     n_beams: int | None = 256,
     reduction: Literal["none", "sentence_mean", "length_mean"] = "sentence_mean",
 ) -> dict[str, npt.NDArray[np.float64]]:
+    """
+    Compute grammar F1 scores from token sequences and predictions.
+    The metric is described in  `Meta-Learning Neural Mechanisms rather than Bayesian Priors <https://aclanthology.org/2025.acl-long.860/>`_ (Goodale et al., ACL 2025)
+
+
+    Parameters
+    ----------
+    lexicon : Lexicon
+    tokens : ndarray of int
+        Token IDs representing the input sequences. Shape (..., seq_length).
+    preds : ndarray of float64
+        Predicted log probabilities for each token. Shape (..., seq_length, vocab_size).
+    category : str
+        The syntactic category of the parsed strings
+    min_log_prob : float or None, optional
+        Minimum log probability threshold for the parser to consider
+    move_prob : float, optional
+        Probability of preferring a move over a merge when parsing.
+        Default is 0.5
+    max_steps : int or None, optional
+        Maximum number of derivation steps. If None, will not be limited.
+        Default is 64.
+    n_beams : int or None, optional
+        Number of beams to maintain while parsing. If none, will not be limited.
+        Default is 256.
+    reduction : {'none', 'sentence_mean', 'length_mean'}, optional
+        Method for reducing F1 scores across sequences:
+
+        - 'none': Return individual scores per sequence
+        - 'sentence_mean': Average over all sequences, ignoring padded tokens
+        - 'length_mean': Average over lengths, ignoring padding tokens
+
+        Default is 'sentence_mean'.
+
+    Returns
+    -------
+    dict of str : ndarray of float64
+        Dictionary containing numpy arrays with keys:
+
+        - 'precision': Precision scores
+        - 'recall': Recall scores
+        - 'f1': F1 scores
+    """
 
     if np.any(tokens < 0):
         raise ValueError(

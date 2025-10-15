@@ -35,3 +35,4 @@ for p in lexicon.generate_grammar("C", max_strings=50):
 
     # A rich string which illustrates where movement was generated from
     print(tree.base_string())
+    print(tree.to_dot())

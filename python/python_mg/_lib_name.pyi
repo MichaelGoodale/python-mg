@@ -146,16 +146,16 @@ class Lexicon:
         """Returns a list of all possible parses of a string represented by tokens."""
 
     def tokens(self) -> dict[str, int]:
-        """Returns the mapping from strings to token IDS"""
+        pass
 
     def detokenize(self, s: Sequence[int] | npt.NDArray[np.uint]) -> list[str]:
-        """Takes a sequence of tokens and converts them to their strings"""
+        pass
 
     def detokenize_batch(
         self,
         s: Sequence[Sequence[int]] | list[npt.NDArray[np.uint]] | npt.NDArray[np.uint],
     ) -> list[list[str]]:
-        """Takes a sequence of tokens and converts them to their strings"""
+        pass
 
     def token_continuations(
         self,
@@ -166,6 +166,4 @@ class Lexicon:
         max_steps: int | None = 64,
         n_beams: int | None = 256,
     ) -> npt.NDArray[np.bool]:
-        """Takes a [.., N, L] numpy array of strings in a grammar and returns the valid next move for each index as a [..., N, L, C] boolean array.
-        L corresponds to length of maximum strings, N to the number of strings and C to the number of words in the grammar.
-        """
+        pass
