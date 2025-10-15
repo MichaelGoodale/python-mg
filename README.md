@@ -64,6 +64,7 @@ There are some examples of how to apply the code in the [examples directory](./e
 
 These include:
 
+- [A script to generate strings from an MG](examples/generate_strings.py)
 - [A script for training a transformer on an MG](examples/train_llm_from_mg.py)
 
 Some of the scripts require extra dependencies.
