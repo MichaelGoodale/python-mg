@@ -1,5 +1,7 @@
 # Python Minimalist Grammar Parser
 
+[**Documentation**](https://michaelgoodale.com/python-mg/)
+
 This repository contains Python bindings for [a Minimalist Grammar parser written in Rust](https://github.com/MichaelGoodale/minimalist-grammar-parser).
 It provides the tools necessary to generate strings from a Minimalist Grammar and parse sentences in a Minimalist Grammar, as well as inspecting their parse tree.
 
