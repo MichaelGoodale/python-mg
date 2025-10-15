@@ -1,22 +1,26 @@
-import torch
-from datasets import Dataset, DatasetDict
-import numpy as np
-import numpy.typing as npt
-from typing import Any
-from python_mg import Lexicon, SyntacticStructure
+# pyright: reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnknownLambdaType=false
+import typing
 from collections.abc import Callable, Iterator
 
+import numpy as np
+import numpy.typing as npt
+import torch
+from scipy.special import log_softmax
+from datasets import Dataset, DatasetDict
+from python_mg import Lexicon, SyntacticStructure
+from python_mg.metrics import grammar_f1_from_strings
 from transformers import (
-    TrainingArguments,
-    Trainer,
     LlamaConfig,
     LlamaForCausalLM,
+    Trainer,
+    TrainingArguments,
 )
 
 
 def generator(
     lex: Lexicon, category: str, max_steps: int = 40
-) -> Callable[[], Iterator[dict[str, npt.NDArray[np.int_] | str | float]]]:
+) -> Callable[[], Iterator[dict[str, npt.NDArray[np.uint] | str | float | int]]]:
+    """Takes a Lexicon and returns a generator which tokenizes samples from it"""
 
     def f():
         for p in lex.generate_grammar(
@@ -36,7 +40,10 @@ def generator(
     return f
 
 
-def collate(features: list[dict[str, npt.NDArray[np.int_]]]) -> dict[str, Any]:
+def collate(
+    features: list[dict[str, npt.NDArray[np.int_]]],
+) -> dict[str, torch.Tensor]:
+    """Pads different tokens together"""
     n = max(len(d["label_ids"]) for d in features)
     X = np.full((len(features), n), 2)
     for i, d in enumerate(features):
@@ -45,7 +52,7 @@ def collate(features: list[dict[str, npt.NDArray[np.int_]]]) -> dict[str, Any]:
 
     input_ids = torch.tensor(X)
     labels = input_ids.clone()
-    labels[labels == 2] = -100
+    labels[labels == 2] = -100  # -100 is a magic number in huggingface
     return {"input_ids": input_ids, "labels": labels}
 
 
@@ -68,16 +75,49 @@ which::N= D -W
 """
 
     lexicon = Lexicon(grammar)
-    data = Dataset.from_generator(generator(lexicon, "C"))
-    data = DatasetDict(
+
+    # creates a huggingface dataset from a lexicon
+    corpus: Dataset = Dataset.from_generator(  # pyright: ignore[reportAssignmentType ]
+        generator(lexicon, "C")
+    )
+
+    data: DatasetDict = DatasetDict(  # type: ignore
         {
-            "train": data.filter(lambda x: x["n_steps"] < 30),
-            "test": data.filter(lambda x: x["n_steps"] >= 30)
+            "train": corpus.filter(lambda x: x["n_steps"] < 30),
+            "eval": corpus.filter(lambda x: x["n_steps"] >= 30)
             .shuffle()
-            .select(range(1024)),
+            .select(range(1024)),  # random sample of longer derivations
+            "test": corpus.filter(lambda x: x["n_steps"] >= 30)
+            .shuffle()
+            .select(range(25)),
         }
     )
 
+    # define a Small LLama Model to train
+    config = LlamaConfig(
+        vocab_size=len(lexicon.tokens()),
+        hidden_size=128,
+        intermediate_size=256,
+        num_hidden_layers=6,
+        num_attention_heads=8,
+        num_key_value_heads=8,
+        max_position_embeddings=2048,
+        rms_norm_eps=1e-6,
+        initializer_range=0.02,
+        use_cache=True,
+        pad_token_id=2,
+        bos_token_id=0,
+        eos_token_id=1,
+        tie_word_embeddings=False,
+        rope_theta=10000.0,
+    )
+
+    config.pad_token = 2
+    model = LlamaForCausalLM(config)
+
+    print(model.num_parameters())
+
+    # train a model
     training_args = TrainingArguments(
         output_dir="mg-training",
         eval_strategy="epoch",
@@ -94,43 +134,26 @@ which::N= D -W
         save_strategy="no",
     )
 
-    # Define a small Llama config from scratch
-    config = LlamaConfig(
-        vocab_size=len(lexicon.tokens()),  # Vocabulary size
-        hidden_size=128,  # Embedding dimension (small model)
-        intermediate_size=256,  # FFN hidden size (usually 4x hidden_size)
-        num_hidden_layers=6,  # Number of transformer layers
-        num_attention_heads=8,  # Number of attention heads
-        num_key_value_heads=8,  # For grouped-query attention (set equal to num_attention_heads for standard)
-        max_position_embeddings=2048,  # Maximum sequence length
-        rms_norm_eps=1e-6,  # RMSNorm epsilon
-        initializer_range=0.02,  # Weight initialization range
-        use_cache=True,  # Enable KV caching for inference
-        pad_token_id=2,
-        bos_token_id=0,
-        eos_token_id=1,
-        tie_word_embeddings=False,  # Whether to tie input/output embeddings
-        rope_theta=10000.0,  # RoPE base frequency
-    )
-
-    config.pad_token = 2
-    model = LlamaForCausalLM(config)
-
-    print(model.num_parameters())
-
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=data["train"],
-        eval_dataset=data["test"],
+        eval_dataset=data["eval"],
         data_collator=collate,
     )
     trainer.train()
-    starting_matrix = torch.zeros(50, 1, dtype=torch.long, device=model.device)
-    generation = model.generate(starting_matrix, do_sample=True)
 
-    grammatical = []
-    for x in generation.tolist():
+    # evaluate the model
+
+    # go over 50 randomly sampled strings and see how many are grammatical
+    starting_matrix = torch.zeros(50, 1, dtype=torch.long, device=model.device)
+    generation = (
+        model.generate(starting_matrix, do_sample=True)
+    ).tolist()  # pyright: ignore[reportAttributeAccessIssue]
+    generation = typing.cast(list[list[int]], generation)
+
+    grammatical: list[int] = []
+    for x in generation:
         text = " ".join(lexicon.detokenize(x))
         parses: list[SyntacticStructure] = []
         try:
@@ -147,6 +170,39 @@ which::N= D -W
     print(
         f"{ (sum(grammatical) / len(grammatical)) * 100 }% grammatical generations",
     )
+
+    # What is the F1 score of the
+    pred = trainer.predict(data["test"])  # pyright: ignore[reportArgumentType]
+    x = typing.cast(npt.NDArray[np.float64], log_softmax(pred.predictions, axis=-1))
+    labels = typing.cast(npt.NDArray[np.int_], pred.label_ids)
+
+    # Average F1 normalized by strings
+    grammar_f1 = grammar_f1_from_strings(
+        lexicon, labels, x[:, :-1, :], "C", reduction="sentence_mean"
+    )["f1"].mean(axis=-1)
+
+    print(
+        f"The model has an average grammar F1 of {grammar_f1} over 50 random eval strings"
+    )
+
+    # Average F1 across lengths
+    length_f1 = grammar_f1_from_strings(
+        lexicon, labels, x[:, :-1, :], "C", reduction="length_mean"
+    )["f1"]
+
+    print(f"The model has the following F1 over lengths: {length_f1}")
+
+    p = lexicon.detokenize(
+        lexicon.parse(
+            "the king know-s the queen know-s which wine the king prefer-s", "C"
+        )[0].tokens()
+    )
+
+    # We can compare the average F1 across length with a specific string and figure out when the F1 is bad.
+    f1_vs_string: list[tuple[float, str]] = []
+    for i in range(len(length_f1)):
+        f1_vs_string.append((float(length_f1[i]), p[i]))
+    print(f1_vs_string)
 
 
 if __name__ == "__main__":

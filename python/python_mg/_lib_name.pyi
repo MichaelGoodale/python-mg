@@ -48,7 +48,7 @@ class SyntacticStructure:
     def max_memory_load(self) -> int:
         """Gets the largest amount of movers at a single point"""
 
-    def tokens(self) -> npt.NDArray[np.int_]:
+    def tokens(self) -> npt.NDArray[np.uint]:
         """Converts the string of this SyntacticStructure into a tokenized numpy array"""
 
     def __to_tree_inner(
@@ -135,7 +135,7 @@ class Lexicon:
 
     def parse_tokens(
         self,
-        s: Sequence[int] | npt.NDArray[np.int_],
+        s: Sequence[int] | npt.NDArray[np.uint],
         category: str,
         min_log_prob: float | None = -128.0,
         move_prob: float = 0.5,
@@ -148,18 +148,18 @@ class Lexicon:
     def tokens(self) -> dict[str, int]:
         """Returns the mapping from strings to token IDS"""
 
-    def detokenize(self, s: Sequence[int] | npt.NDArray[np.int_]) -> list[str]:
+    def detokenize(self, s: Sequence[int] | npt.NDArray[np.uint]) -> list[str]:
         """Takes a sequence of tokens and converts them to their strings"""
 
     def detokenize_batch(
         self,
-        s: Sequence[Sequence[int]] | list[npt.NDArray[np.int_]] | npt.NDArray[np.int_],
+        s: Sequence[Sequence[int]] | list[npt.NDArray[np.uint]] | npt.NDArray[np.uint],
     ) -> list[list[str]]:
         """Takes a sequence of tokens and converts them to their strings"""
 
     def token_continuations(
         self,
-        x: npt.NDArray[np.int_],
+        x: npt.NDArray[np.uint],
         category: str,
         min_log_prob: float | None = -128.0,
         move_prob: float = 0.5,

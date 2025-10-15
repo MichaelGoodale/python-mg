@@ -44,10 +44,16 @@ def grammar_f1_from_strings(
     move_prob: float = 0.5,
     max_steps: int | None = 64,
     n_beams: int | None = 256,
-    reduction: Literal["none", "sentence_mean"] = "sentence_mean",
+    reduction: Literal["none", "sentence_mean", "length_mean"] = "sentence_mean",
 ) -> dict[str, npt.NDArray[np.float64]]:
+
+    if np.any(tokens < 0):
+        raise ValueError(
+            "Some tokens are negative which means they will be cast to unsigned integers incorrectly"
+        )
+
     conts = lexicon.token_continuations(
-        tokens,
+        tokens.astype(np.uint64),
         category,
         min_log_prob=min_log_prob,
         move_prob=move_prob,
@@ -57,14 +63,22 @@ def grammar_f1_from_strings(
 
     d = grammar_f1(preds, conts)
 
-    if reduction == "sentence_mean":
-        mask = (tokens[..., :-1] != 2) & (  # pyright: ignore[reportAny]
-            tokens[..., :-1] != 1
-        )
+    mask = (tokens[..., :-1] != 2) & (  # pyright: ignore[reportAny]
+        tokens[..., :-1] != 1
+    )
 
+    if reduction == "sentence_mean":
         d = {
             k: np.where(mask, v, 0.0).sum(axis=-1)  # pyright: ignore[reportAny]
             / mask.sum(axis=-1)  # pyright: ignore[reportAny]
+            for k, v in d.items()
+        }
+    elif reduction == "length_mean":
+        d = {
+            k: np.where(mask, v, 0.0).sum(  # pyright: ignore[reportAny]
+                axis=tuple(range(tokens.ndim - 1))
+            )
+            / mask.sum(axis=tuple(range(tokens.ndim - 1)))  # pyright: ignore[reportAny]
             for k, v in d.items()
         }
     elif reduction != "none":
