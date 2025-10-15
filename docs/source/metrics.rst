@@ -6,4 +6,3 @@ This outlines metrics that make it easy to calculate the grammar F1 of an autore
 .. automodule:: python_mg.metrics
    :members:
    :undoc-members:
-   :show-inheritance:
