@@ -14,7 +14,7 @@ It provides the tools necessary to generate strings from a Minimalist Grammar an
    :caption: Contents:
 
    lexicon
-   graphing
+   syntax 
    metrics
 
 

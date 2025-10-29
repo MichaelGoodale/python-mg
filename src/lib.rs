@@ -268,7 +268,7 @@ impl PyContinuation {
     ///Returns
     ///-------
     ///bool
-    ///    true if the continuation is the end of string marker, else false.
+    ///    ``True`` if the continuation is the end of string marker, else ``False``.
     fn is_end_of_string(&self) -> bool {
         matches!(self, PyContinuation(Continuation::EndOfSentence))
     }
@@ -278,7 +278,7 @@ impl PyContinuation {
     ///Returns
     ///-------
     ///bool
-    ///    true if the continuation is a word, else false.
+    ///    ``True`` if the continuation is a word, else ``False``.
     fn is_word(&self) -> bool {
         matches!(self, PyContinuation(Continuation::Word(_)))
     }
@@ -289,7 +289,7 @@ impl PyContinuation {
     ///Returns
     ///-------
     ///bool
-    ///    true if the continuation is a multi-word, else false.
+    ///    ``True`` if the continuation is a multi-word, else ``False``.
     fn is_multi_word(&self) -> bool {
         matches!(self, PyContinuation(Continuation::AffixedWord(_)))
     }

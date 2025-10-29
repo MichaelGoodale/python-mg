@@ -62,20 +62,17 @@ class ParseTree:
             key=lambda x: sort_key(G, x),
             reverse=True,
         )
-        movements: dict[int, list[int]] = {}
+        movements: dict[int, int] = {}
 
         for e in movement_edges:
             (src, tgt) = G.get_edge_endpoints_by_index(e)
             trace_id = G.get_node_data(src).trace_id()
-            movements[trace_id] = [tgt, src]
+            movements[trace_id] = tgt
 
-        self.movements: dict[int, list[int]] = movements
-        self.movement_sources: dict[int, int] = {
-            m[0]: i for i, m in self.movements.items()
-        }
+        self.__movement_sources: dict[int, int] = {m: i for i, m in movements.items()}
 
         self.G: rx.PyDiGraph[MGNode, MGEdge] = G
-        """PyDiGraph[MGNode, MGEdge]: A rustworkx PyDiGraph which contains the syntactice structure of a sentence"""
+        """PyDiGraph[MGNode, MGEdge]: A `RustworkX <https://github.com/Qiskit/rustworkx>`_ PyDiGraph which contains the syntactice structure of a sentence"""
 
     def normal_string(self) -> str:
         """The string used by a ParseTree
@@ -140,8 +137,8 @@ class ParseTree:
         for child in right_children:
             out += self.__explore(child)
 
-        if n_i in self.movement_sources:
-            return [Mover(out, self.movement_sources[n_i])]
+        if n_i in self.__movement_sources:
+            return [Mover(out, self.__movement_sources[n_i])]
 
         return out
 
