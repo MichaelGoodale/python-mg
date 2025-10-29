@@ -127,7 +127,7 @@ impl PySyntacticStructure {
     ///    A LaTeX representation of the parse tree
     fn latex(&self) -> String {
         let lex = self.lex.get();
-        self.rules.to_tree(&lex.lexicon).to_latex()
+        lex.lexicon.derivation(self.rules.clone()).tree().latex()
     }
 
     ///The maximum number of moving elements stored in memory at one time.
@@ -142,7 +142,9 @@ impl PySyntacticStructure {
 
     #[allow(clippy::type_complexity)]
     fn __to_tree_inner(&self) -> (Vec<(usize, PyMgNode)>, Vec<(usize, usize, PyMgEdge)>, usize) {
-        let (g, root) = self.rules.to_petgraph(&self.lex.get().lexicon);
+        let d = self.lex.get().lexicon.derivation(self.rules.clone());
+        let tree = d.tree();
+        let (g, root) = tree.petgraph();
         let nodes = g
             .node_indices()
             .map(|n| (n.index(), PyMgNode(g.node_weight(n).unwrap().clone())))

@@ -29,6 +29,74 @@ def test_memory_load():
     assert parse.max_memory_load() == 1
 
 
+def test_trees():
+    grammar = """
+::T= C
+::T= +W C
+s::=>V =D T
+know::C= V
+say::C= V
+prefer::D= V
+drink::D= V
+king::N
+wine::N
+beer::N
+queen::N
+the::N= D
+which::N= D -W"""
+    lexicon = Lexicon(grammar)
+
+    tokens = lexicon.tokens()
+    for p in lexicon.parse("which beer the queen drink-s", "C"):
+        tree = p.to_tree()
+        assert (
+            p.latex()
+            == "\\begin{forest}[\\der{C} [\\der{D -W} [\\plainlex{N= D -W}{which}] [\\plainlex{N}{beer}]] [\\der{+W C} [\\plainlex{T= +W C}{$\\epsilon$}] [\\der{T} [\\der{D} [\\plainlex{N= D}{the}] [\\plainlex{N}{queen}]] [\\der{=D T} [\\plainlex{=>V =D T}{drink-s}] [\\der{V} [\\plainlex{D= V}{drink}] [$t_0$]]]]]]\\end{forest}"
+        )
+        assert tree.normal_string() == "which beer the queen drink-s"
+
+        # A rich string which illustrates where movement was generated from
+        print(tree.base_string())
+
+        digraph = """digraph {
+0 [label="C", ordering=out];
+1 [label="D -W", ordering=out];
+2 [label="+W C", ordering=out];
+3 [label="which::N= D -W", ordering=out];
+4 [label="beer::N", ordering=out];
+5 [label="ε::T= +W C", ordering=out];
+6 [label="T", ordering=out];
+7 [label="D", ordering=out];
+8 [label="=D T", ordering=out];
+9 [label="the::N= D", ordering=out];
+10 [label="queen::N", ordering=out];
+11 [label="drink-s::=>V =D T", ordering=out];
+12 [label="V", ordering=out];
+13 [color=gray, fontcolor=gray, label="drink::D= V", ordering=out, style=dashed];
+14 [label="t0", ordering=out];
+0 -> 1 ;
+1 -> 3 ;
+2 -> 5 ;
+6 -> 7 ;
+7 -> 9 ;
+8 -> 11 ;
+12 -> 13 ;
+0 -> 2 ;
+1 -> 4 ;
+2 -> 6 ;
+6 -> 8 ;
+7 -> 10 ;
+8 -> 12 ;
+12 -> 14 ;
+14 -> 1 [constraint=false, style=dashed];
+13 -> 11 [constraint=false, style=dashed];
+}
+"""
+        print(tree.to_dot())
+        assert tree.to_dot() == digraph
+        assert False == True
+
+
 def test_continuations():
     x = Lexicon("a::b= S\nb::b")
     assert x.continuations("a", "S") == {Continuation("b")}

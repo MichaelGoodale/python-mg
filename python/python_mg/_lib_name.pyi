@@ -12,13 +12,18 @@ class MGNode:
     def lemma_string(self) -> str:
         """Format the node as a string in a tree if leaf or trace"""
 
+    def is_stolen(self) -> str:
+        """Checks if the head has been stolen by head-movement"""
+
 class MGEdge:
     def is_move(self) -> bool:
         """Checks whether the edge is a movement edge"""
 
-    @staticmethod
-    def move_edge() -> MGEdge:
-        """Gets a movement edge"""
+    def is_head_move(self) -> bool:
+        """Checks whether the edge is a head-movement edge"""
+
+    def is_merge(self) -> bool:
+        """Checks whether the edge is a merge edge"""
 
 class SyntacticStructure:
     """A parse tree for some string"""
