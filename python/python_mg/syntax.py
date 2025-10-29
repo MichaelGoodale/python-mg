@@ -12,18 +12,10 @@ def sort_key(G: rx.PyDiGraph[MGNode, MGEdge], e: int) -> int:
 
 
 @dataclass
-class StolenHead:
-    """A head that has been stolen"""
-
-    s: str
-    """ the stolen head """
-
-
-@dataclass
 class Mover:
     """A list of words used to indicate where movement has occurred. See :meth:`python_mg.ParseTree.base_string`"""
 
-    s: list[str | Mover]
+    s: list[str | Mover | Trace]
     """ The moved words """
 
     trace: int
@@ -64,6 +56,24 @@ class ParseTree:
     ):
         self.root: int = root
         self.structure: SyntacticStructure = structure
+
+        movement_edges = sorted(
+            [x for x in G.filter_edges(lambda x: x.is_move())],
+            key=lambda x: sort_key(G, x),
+            reverse=True,
+        )
+        movements: dict[int, list[int]] = {}
+
+        for e in movement_edges:
+            (src, tgt) = G.get_edge_endpoints_by_index(e)
+            trace_id = G.get_node_data(src).trace_id()
+            movements[trace_id] = [tgt, src]
+
+        self.movements: dict[int, list[int]] = movements
+        self.movement_sources: dict[int, int] = {
+            m[0]: i for i, m in self.movements.items()
+        }
+
         self.G: rx.PyDiGraph[MGNode, MGEdge] = G
         """PyDiGraph[MGNode, MGEdge]: A rustworkx PyDiGraph which contains the syntactice structure of a sentence"""
 
@@ -77,7 +87,7 @@ class ParseTree:
         """
         return str(self.structure)
 
-    def base_string(self) -> list[str | Mover | Trace | StolenHead]:
+    def base_string(self) -> list[str | Mover | Trace]:
         """A richer representation of the parsed string, with traces where movement had occurred, and :meth:`python_mg.Mover` objects to indicated moved phrases.
 
         Returns
@@ -112,8 +122,8 @@ class ParseTree:
             edge_attr_fn=edge_attrs,
         )
 
-    def __explore(self, n_i: int) -> list[str | Mover | Trace | StolenHead]:
-        out: list[str | Mover | Trace | StolenHead] = []
+    def __explore(self, n_i: int) -> list[str | Mover | Trace]:
+        out: list[str | Mover | Trace] = []
         children = [(str(e), n) for (_, n, e) in self.G.out_edges(n_i)]
         left_children = [n for (e, n) in children if e == "MergeLeft"]
         right_children = [n for (e, n) in children if e == "MergeRight"]
@@ -124,11 +134,14 @@ class ParseTree:
         s = self.G.get_node_data(n_i).lemma_string()
         if node.is_trace():
             out.append(Trace(node.trace_id()))
-        elif s != "":
+        elif s != "" and not node.is_stolen():
             out.append(s)
 
         for child in right_children:
             out += self.__explore(child)
+
+        if n_i in self.movement_sources:
+            return [Mover(out, self.movement_sources[n_i])]
 
         return out
 
@@ -155,6 +168,3 @@ def to_tree(self: SyntacticStructure) -> ParseTree:
         _ = G.add_edge(old2new[old_src], old2new[old_tgt], edge)
 
     return ParseTree(G, old2new[root], self)
-
-
-SyntacticStructure.to_tree = to_tree

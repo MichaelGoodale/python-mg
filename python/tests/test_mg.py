@@ -2,6 +2,7 @@ import pytest
 import pickle
 
 from python_mg import Lexicon, Continuation
+from python_mg.syntax import Trace, Mover
 
 
 def test_lexicon():
@@ -46,7 +47,6 @@ the::N= D
 which::N= D -W"""
     lexicon = Lexicon(grammar)
 
-    tokens = lexicon.tokens()
     for p in lexicon.parse("which beer the queen drink-s", "C"):
         tree = p.to_tree()
         assert (
@@ -56,7 +56,19 @@ which::N= D -W"""
         assert tree.normal_string() == "which beer the queen drink-s"
 
         # A rich string which illustrates where movement was generated from
-        print(tree.base_string())
+        base = tree.base_string()
+
+        print(base)
+        assert base[-1] == Trace(0)
+
+        assert tree.base_string() == [
+            Mover(s=["which", "beer"], trace=0),
+            "ε",
+            "the",
+            "queen",
+            "drink-s",
+            Trace(trace=0),
+        ]
 
         digraph = """digraph {
 0 [label="C", ordering=out];
@@ -92,9 +104,7 @@ which::N= D -W"""
 13 -> 11 [constraint=false, style=dashed];
 }
 """
-        print(tree.to_dot())
         assert tree.to_dot() == digraph
-        assert False == True
 
 
 def test_continuations():
