@@ -17,7 +17,7 @@ pyo3 = { version = "0.27.1", features = [
 ] }
 minimalist-grammar-parser = { git = "https://@github.com/MichaelGoodale/minimalist-grammar-parser.git", features = [
   "pretty",
-], branch = "even-better-printing" }
+] }
 anyhow = "1.0.98"
 logprob = "0.2.1"
 rand = "0.9.1"

@@ -300,7 +300,7 @@ checksum = "2687e6cf9c00f48e9284cf9fd15f2ef341d03cc7743abf9df4c5f07fdee50b18"
 [[package]]
 name = "minimalist-grammar-parser"
 version = "0.1.0"
-source = "git+https://github.com/MichaelGoodale/minimalist-grammar-parser.git?branch=even-better-printing#99f3164cd1e855f7a8f11b3212b58744b3046ac3"
+source = "git+https://github.com/MichaelGoodale/minimalist-grammar-parser.git#f9f0445fb85a248dcf7793e1a7c701284efaee08"
 dependencies = [
  "ahash",
  "bitvec",
