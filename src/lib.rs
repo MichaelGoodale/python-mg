@@ -167,7 +167,14 @@ impl PySyntacticStructure {
     }
 }
 
-#[pyclass(name = "Lexicon", str, eq, frozen, module = "python_mg")]
+#[pyclass(
+    name = "Lexicon",
+    str,
+    eq,
+    frozen,
+    module = "python_mg",
+    from_py_object
+)]
 #[derive(Debug, Clone, Eq, PartialEq)]
 ///A MG grammar that can be used to generate SyntacticStructures or parse strings into
 ///SyntacticStructures
@@ -223,7 +230,7 @@ impl GrammarIterator {
 }
 
 #[pyclass(name = "Continuation", str, eq, frozen, hash)]
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Eq, PartialEq, Hash)]
 ///A class to represent a possible continuation of a string according to some grammar.
 struct PyContinuation(Continuation<String>);
 

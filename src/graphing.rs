@@ -3,7 +3,7 @@ use pyo3::{exceptions::PyValueError, prelude::*};
 use std::fmt::Display;
 
 #[pyclass(name = "MGNode", str, eq, frozen)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct PyMgNode(pub TreeNode<'static, String, String>);
 
 impl Display for PyMgNode {
@@ -60,7 +60,7 @@ impl PyMgNode {
 }
 
 #[pyclass(name = "MGEdge", str, eq, frozen)]
-#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub struct PyMgEdge(pub TreeEdge);
 
 impl Display for PyMgEdge {
