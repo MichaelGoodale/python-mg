@@ -50,7 +50,7 @@ impl TokenMap {
 
 fn to_phon_content(s: &[usize], lex: &TokenMap) -> PyResult<Vec<PhonContent<String>>> {
     let mut end = s.len() - 1;
-    while s.get(end).map(|&x| x == PAD).unwrap_or(false) {
+    while s.get(end).is_some_and(|&x| x == PAD) {
         end -= 1;
     }
 
@@ -86,7 +86,7 @@ fn to_phon_content(s: &[usize], lex: &TokenMap) -> PyResult<Vec<PhonContent<Stri
             .ok_or(PyErr::new::<PyValueError, _>("Out of vocabulary"))?
             .clone();
 
-        let next_is_affix = s.get(i + 1).map(|&x| x == AFFIX).unwrap_or(false);
+        let next_is_affix = s.get(i + 1).is_some_and(|&x| x == AFFIX);
         if next_is_affix {
             i += 1;
             affix_v.push(w);
@@ -219,7 +219,7 @@ impl PyLexicon {
                 } else {
                     let w = tokens.1.get(&c).unwrap().clone();
 
-                    let is_affix = s.get(j + 1).map(|&x| x == AFFIX).unwrap_or(false);
+                    let is_affix = s.get(j + 1).is_some_and(|&x| x == AFFIX);
 
                     match (is_affix, last_was_affix) {
                         (_, true) => {
@@ -405,7 +405,7 @@ impl PySyntacticStructure {
         let tokens = slf.lex.get().tokens();
 
         let mut output = vec![SOS];
-        for c in slf.string.iter() {
+        for c in &slf.string {
             match c {
                 PhonContent::Normal(w) => output.push(
                     *tokens
@@ -423,7 +423,7 @@ impl PySyntacticStructure {
                         })
                         .take(items.len() * 2 - 1), //Don't take the last affix
                 ),
-            };
+            }
         }
         output.push(EOS);
         let py = slf.py();

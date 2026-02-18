@@ -70,8 +70,7 @@ impl PySyntacticStructure {
         Ok(lex
             .lexeme_to_id
             .get(&entry)
-            .map(|x| self.rules.used_lemmas().any(|y| &y == x))
-            .unwrap_or(false))
+            .is_some_and(|x| self.rules.used_lemmas().any(|y| &y == x)))
     }
 
     ///The probability of generating this SyntacticStructure using its associated Lexicon.
@@ -94,8 +93,7 @@ impl PySyntacticStructure {
         }
         lex.lemma_to_id
             .get(&s)
-            .map(|x| self.rules.used_lemmas().any(|y| x.contains(&y)))
-            .unwrap_or(false)
+            .is_some_and(|x| self.rules.used_lemmas().any(|y| x.contains(&y)))
     }
 
     ///The probability of generating this SyntacticStructure using its associated Lexicon.
@@ -306,9 +304,9 @@ fn map_string(s: &str) -> Vec<PhonContent<String>> {
     match s.trim() {
         "" => vec![],
         _ => s
-            .split(" ")
+            .split(' ')
             .map(|x| {
-                let x = x.split("-").map(|x| x.to_string()).collect::<Vec<_>>();
+                let x = x.split('-').map(ToString::to_string).collect::<Vec<_>>();
                 if x.len() == 1 {
                     PhonContent::Normal(x.first().unwrap().clone())
                 } else {
@@ -333,10 +331,10 @@ fn get_config(
             .with_min_log_prob(LogProb::new(min_log_prob).map_err(|x| anyhow!(x.to_string()))?);
     }
     if let Some(max_steps) = max_steps {
-        config = config.with_max_steps(max_steps)
+        config = config.with_max_steps(max_steps);
     }
     if let Some(n_beams) = n_beams {
-        config = config.with_max_beams(n_beams)
+        config = config.with_max_beams(n_beams);
     }
     Ok(config)
 }
@@ -365,9 +363,9 @@ impl PyLexicon {
 
         Ok(PyLexicon {
             lexicon,
+            word_id,
             lexeme_to_id,
             lemma_to_id,
-            word_id,
         })
     }
 }
@@ -487,7 +485,7 @@ impl PyLexicon {
     fn random_lexicon(lemmas: Vec<String>) -> PyResult<Self> {
         let mut rng = rand::rng();
         let lexicon: Lexicon<_, u16> = Lexicon::random(&0, &lemmas, None, &mut rng);
-        let lexicon = lexicon.remap_lexicon(|x| x.clone(), |c| c.to_string());
+        let lexicon = lexicon.remap_lexicon(Clone::clone, ToString::to_string);
         PyLexicon::from_lexicon(lexicon)
     }
 
@@ -535,7 +533,7 @@ impl PyLexicon {
             hashmap
                 .entry(string)
                 .and_modify(|old_log_prob: &mut LogProb<f64>| {
-                    *old_log_prob = old_log_prob.add_log_prob_clamped(prob)
+                    *old_log_prob = old_log_prob.add_log_prob_clamped(prob);
                 })
                 .or_insert(prob);
 
