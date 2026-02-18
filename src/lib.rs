@@ -470,7 +470,7 @@ impl PyLexicon {
 
         Ok(self
             .lexicon
-            .valid_continuations(category, &prefix, &config)
+            .valid_continuations(&category, &prefix, &config)
             .map_err(|e| anyhow!(e.to_string()))?
             .into_iter()
             .map(PyContinuation)

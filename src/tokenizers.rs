@@ -242,7 +242,7 @@ impl PyLexicon {
 
                 let cont = slf
                     .lexicon
-                    .valid_continuations(category.clone(), &v, &config)
+                    .valid_continuations(&category, &v, &config)
                     .map_err(|x| PyValueError::new_err(x.to_string()))?;
 
                 for next in cont {
