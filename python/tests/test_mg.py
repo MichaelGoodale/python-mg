@@ -30,6 +30,15 @@ def test_memory_load():
     assert parse.max_memory_load() == 1
 
 
+def test_semantic_lexicon():
+    grammar = """John::d::a_j
+run::=d v::lambda a x some_e(e, pe_run(e), AgentOf(x,e))
+Mary::d::a_m
+likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & PatientOf(x, e))"""
+    semantic_lexicon = Lexicon(grammar)
+    assert semantic_lexicon.is_semantic()
+
+
 def test_trees():
     grammar = """
 ::T= C
@@ -147,8 +156,7 @@ def test_continuations():
         assert parse.contains_lexical_entry("b::B")
         assert not parse.contains_lexical_entry("a::S")
 
-    lexicon = Lexicon(
-        """::T<= +q Q
+    lexicon = Lexicon("""::T<= +q Q
 what::d[in] -subj3 -q -wh
 what::d[in] -acc -wh
 who::d[an] -subj3 -q -wh
@@ -238,7 +246,6 @@ PAST::=>V +subj1 t
 ::r -r
 3PRES::=>V +subj3 t
 2PRES::=>V +subj2 t
-1PRES::=>V +subj1 t"""
-    )
+1PRES::=>V +subj1 t""")
 
     assert lexicon.continuations("he is run-ing", "C") == {Continuation.EOS()}

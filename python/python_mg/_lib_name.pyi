@@ -90,6 +90,9 @@ class Lexicon:
     def mdl(self, n_phonemes: int) -> float:
         """Returns the model description length of the lexicon"""
 
+    def is_semantic(self) -> bool:
+        """Returns whether the lexicon has semantic interpretations"""
+
     def continuations(
         self,
         prefix: str,

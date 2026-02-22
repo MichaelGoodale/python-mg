@@ -1,16 +1,17 @@
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
+    sync::Arc,
 };
 
 use anyhow::anyhow;
 use logprob::LogProb;
 use minimalist_grammar_parser::{
-    Generator, ParsingConfig, PhonContent, RulePool,
-    lexicon::{LexemeId, LexicalEntry, Lexicon},
+    Generator, ParsingConfig, PhonContent, Pronounciation, RulePool,
+    lexicon::{LexemeId, LexicalEntry, Lexicon, SemanticLexicon},
     parsing::beam::Continuation,
 };
-use pyo3::prelude::*;
+use pyo3::{exceptions::PyValueError, prelude::*};
 
 mod graphing;
 use graphing::{PyMgEdge, PyMgNode};
@@ -64,9 +65,7 @@ impl PySyntacticStructure {
 
     fn contains_lexical_entry(&self, s: &str) -> PyResult<bool> {
         let lex = self.lex.get();
-        let entry = LexicalEntry::parse(s)
-            .map_err(|e| anyhow!(e.to_string()))?
-            .remap(|x| x.to_string(), |x| x.to_string());
+        let entry = LexicalEntry::parse(s).map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(lex
             .lexeme_to_id
             .get(&entry)
@@ -84,7 +83,7 @@ impl PySyntacticStructure {
     ///-------
     ///bool
     ///    whether the word is present in the structure
-    fn contains_word(&self, mut s: Option<String>) -> bool {
+    fn contains_word(&self, mut s: Option<&str>) -> bool {
         let lex = self.lex.get();
         if let Some(s_inner) = &s
             && s_inner.is_empty()
@@ -92,7 +91,7 @@ impl PySyntacticStructure {
             s = None;
         }
         lex.lemma_to_id
-            .get(&s)
+            .get(&s.into())
             .is_some_and(|x| self.rules.used_lemmas().any(|y| x.contains(&y)))
     }
 
@@ -125,7 +124,11 @@ impl PySyntacticStructure {
     ///    A LaTeX representation of the parse tree
     fn latex(&self) -> String {
         let lex = self.lex.get();
-        lex.lexicon.derivation(self.rules.clone()).tree().latex()
+        lex.lexicon
+            .lexicon()
+            .derivation(self.rules.clone())
+            .tree()
+            .latex()
     }
 
     ///The maximum number of moving elements stored in memory at one time.
@@ -140,12 +143,27 @@ impl PySyntacticStructure {
 
     #[allow(clippy::type_complexity)]
     fn __to_tree_inner(&self) -> (Vec<(usize, PyMgNode)>, Vec<(usize, usize, PyMgEdge)>, usize) {
-        let d = self.lex.get().lexicon.derivation(self.rules.clone());
+        let d = self
+            .lex
+            .get()
+            .lexicon
+            .lexicon()
+            .derivation(self.rules.clone());
         let tree = d.tree();
         let (g, root) = tree.petgraph();
         let nodes = g
             .node_indices()
-            .map(|n| (n.index(), PyMgNode(g.node_weight(n).unwrap().clone())))
+            .map(|n| {
+                (
+                    n.index(),
+                    PyMgNode(
+                        g.node_weight(n)
+                            .unwrap()
+                            .clone()
+                            .map(|x| x.to_string(), |x| x.to_string()),
+                    ),
+                )
+            })
             .collect::<Vec<_>>();
 
         let mut edges = g
@@ -165,6 +183,65 @@ impl PySyntacticStructure {
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+enum PossiblySemanticLexicon {
+    Normal(Lexicon<&'static str, &'static str>),
+    Semantic(SemanticLexicon<'static, &'static str, &'static str>),
+}
+
+impl Display for PossiblySemanticLexicon {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PossiblySemanticLexicon::Normal(lex) => write!(f, "{lex}"),
+            PossiblySemanticLexicon::Semantic(lex) => write!(f, "{lex}"),
+        }
+    }
+}
+
+impl PossiblySemanticLexicon {
+    fn new(s: &'static str) -> anyhow::Result<Self> {
+        if let Ok(lex) = Lexicon::from_string(s) {
+            Ok(PossiblySemanticLexicon::Normal(lex))
+        } else {
+            Ok(PossiblySemanticLexicon::Semantic(SemanticLexicon::parse(
+                s,
+            )?))
+        }
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct SelfOwningLexicon {
+    lexicon: PossiblySemanticLexicon,
+    ///Must be last so it is dropped after previous things.
+    string: Arc<String>,
+}
+
+impl SelfOwningLexicon {
+    fn new(s: String) -> anyhow::Result<Self> {
+        let string = Arc::new(s);
+        let str: &'static str = unsafe { std::mem::transmute(string.as_str()) };
+
+        Ok(SelfOwningLexicon {
+            lexicon: PossiblySemanticLexicon::new(str)?,
+            string,
+        })
+    }
+
+    fn lexicon(&self) -> &Lexicon<&'static str, &'static str> {
+        match &self.lexicon {
+            PossiblySemanticLexicon::Normal(lexicon) => lexicon,
+            PossiblySemanticLexicon::Semantic(semantic_lexicon) => semantic_lexicon.lexicon(),
+        }
+    }
+}
+
+impl Display for SelfOwningLexicon {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.lexicon)
+    }
+}
+
 #[pyclass(
     name = "Lexicon",
     str,
@@ -177,10 +254,12 @@ impl PySyntacticStructure {
 ///A MG grammar that can be used to generate SyntacticStructures or parse strings into
 ///SyntacticStructures
 struct PyLexicon {
-    lexicon: Lexicon<String, String>,
     word_id: TokenMap,
-    lexeme_to_id: HashMap<LexicalEntry<String, String>, LexemeId>,
-    lemma_to_id: HashMap<Option<String>, Vec<LexemeId>>,
+    lexeme_to_id: HashMap<LexicalEntry<&'static str, &'static str>, LexemeId>,
+    lemma_to_id: HashMap<Pronounciation<&'static str>, Vec<LexemeId>>,
+
+    //Has to be last bc of the static strs elsewhere
+    lexicon: SelfOwningLexicon,
 }
 
 mod tokenizers;
@@ -300,15 +379,15 @@ impl PyContinuation {
     }
 }
 
-fn map_string(s: &str) -> Vec<PhonContent<String>> {
+fn map_string(s: &str) -> Vec<PhonContent<&str>> {
     match s.trim() {
         "" => vec![],
         _ => s
             .split(' ')
             .map(|x| {
-                let x = x.split('-').map(ToString::to_string).collect::<Vec<_>>();
+                let x = x.split('-').collect::<Vec<_>>();
                 if x.len() == 1 {
-                    PhonContent::Normal(x.first().unwrap().clone())
+                    PhonContent::Normal(*x.first().unwrap())
                 } else {
                     PhonContent::Affixed(x)
                 }
@@ -340,8 +419,9 @@ fn get_config(
 }
 
 impl PyLexicon {
-    fn from_lexicon(lexicon: Lexicon<String, String>) -> PyResult<Self> {
+    fn from_lexicon(lexicon: SelfOwningLexicon) -> PyResult<Self> {
         let lexeme_to_id: HashMap<_, LexemeId> = lexicon
+            .lexicon()
             .lexemes_and_ids()
             .map_err(|e| anyhow!(e))?
             .map(|(id, entry)| (entry, id))
@@ -350,13 +430,13 @@ impl PyLexicon {
         let mut lemma_to_id = HashMap::default();
         let mut word_id = TokenMap::default();
 
-        for leaf in lexicon.leaves().iter().copied() {
-            let lemma = lexicon
+        for leaf in lexicon.lexicon().leaves().iter().copied() {
+            let lemma = *lexicon
+                .lexicon()
                 .leaf_to_lemma(leaf)
-                .expect("Invalid lexicon!")
-                .clone();
-            if let Some(word) = lemma.as_ref() {
-                word_id.add_word(word.as_str());
+                .expect("Invalid lexicon!");
+            if let Pronounciation::Pronounced(word) = lemma.as_ref() {
+                word_id.add_word(word);
             }
             lemma_to_id.entry(lemma).or_insert(vec![]).push(leaf);
         }
@@ -374,7 +454,7 @@ impl PyLexicon {
     #[allow(clippy::too_many_arguments)]
     fn inner_parse(
         slf: PyRef<'_, Self>,
-        s: &[PhonContent<String>],
+        s: &[PhonContent<&str>],
         category: String,
         min_log_prob: Option<f64>,
         move_prob: f64,
@@ -385,8 +465,9 @@ impl PyLexicon {
         let config = get_config(min_log_prob, move_prob, max_steps, n_beams)?;
         let parser = slf
             .lexicon
-            .parse(s, category, &config)
-            .map_err(|e| anyhow!(e.to_string()))?;
+            .lexicon()
+            .parse(s, category.as_str(), &config)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
 
         let py = slf.py();
         let self_ref: Py<Self> = slf.clone().into_pyobject(py).unwrap().into();
@@ -396,7 +477,15 @@ impl PyLexicon {
                 .map(|(prob, string, rules)| PySyntacticStructure {
                     prob,
                     rules,
-                    string: string.to_vec(),
+                    string: string
+                        .iter()
+                        .map(|x| match x {
+                            PhonContent::Normal(x) => PhonContent::Normal(x.to_string()),
+                            PhonContent::Affixed(items) => {
+                                PhonContent::Affixed(items.iter().map(|x| x.to_string()).collect())
+                            }
+                        })
+                        .collect(),
                     lex: self_ref.clone_ref(py),
                 })
                 .collect())
@@ -405,7 +494,15 @@ impl PyLexicon {
                 .map(|(prob, string, rules)| PySyntacticStructure {
                     prob,
                     rules,
-                    string: string.to_vec(),
+                    string: string
+                        .iter()
+                        .map(|x| match x {
+                            PhonContent::Normal(x) => PhonContent::Normal(x.to_string()),
+                            PhonContent::Affixed(items) => {
+                                PhonContent::Affixed(items.iter().map(|x| x.to_string()).collect())
+                            }
+                        })
+                        .collect(),
                     lex: self_ref.clone_ref(py),
                 })
                 .collect())
@@ -415,6 +512,10 @@ impl PyLexicon {
 
 #[pymethods]
 impl PyLexicon {
+    fn is_semantic(&self) -> bool {
+        matches!(self.lexicon.lexicon, PossiblySemanticLexicon::Semantic(_))
+    }
+
     fn __getnewargs__(&self) -> (String,) {
         (self.lexicon.to_string(),)
     }
@@ -426,7 +527,10 @@ impl PyLexicon {
     ///float
     ///    the MDL of the lexicon.
     fn mdl(&self, n_phonemes: u16) -> PyResult<f64> {
-        Ok(self.lexicon.mdl_score(n_phonemes).map_err(|e| anyhow!(e))?)
+        self.lexicon
+            .lexicon()
+            .mdl_score(n_phonemes)
+            .map_err(|e| PyValueError::new_err(e.to_string()))
     }
 
     #[pyo3(signature = (prefix, category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256))]
@@ -468,10 +572,19 @@ impl PyLexicon {
 
         Ok(self
             .lexicon
-            .valid_continuations(&category, &prefix, &config)
-            .map_err(|e| anyhow!(e.to_string()))?
+            .lexicon()
+            .valid_continuations(&category.as_str(), &prefix, &config)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?
             .into_iter()
-            .map(PyContinuation)
+            .map(|x| {
+                PyContinuation(match x {
+                    Continuation::Word(x) => Continuation::Word(x.to_string()),
+                    Continuation::AffixedWord(items) => Continuation::AffixedWord(
+                        items.into_iter().map(|x| x.to_string()).collect(),
+                    ),
+                    Continuation::EndOfSentence => Continuation::EndOfSentence,
+                })
+            })
             .collect())
     }
 
@@ -486,7 +599,8 @@ impl PyLexicon {
         let mut rng = rand::rng();
         let lexicon: Lexicon<_, u16> = Lexicon::random(&0, &lemmas, None, &mut rng);
         let lexicon = lexicon.remap_lexicon(Clone::clone, ToString::to_string);
-        PyLexicon::from_lexicon(lexicon)
+        let lex_s = lexicon.to_string();
+        PyLexicon::from_lexicon(SelfOwningLexicon::new(lex_s)?)
     }
 
     #[pyo3(signature = (category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256, max_strings=None))]
@@ -516,7 +630,7 @@ impl PyLexicon {
     ///    The list of all strings along with their log probability
     fn generate_unique_strings(
         &self,
-        category: String,
+        category: &str,
         min_log_prob: Option<f64>,
         move_prob: f64,
         max_steps: Option<usize>,
@@ -527,8 +641,9 @@ impl PyLexicon {
         let mut hashmap = HashMap::new();
         for (prob, string, _) in self
             .lexicon
+            .lexicon()
             .generate(category, &config)
-            .map_err(|e| anyhow!(e))?
+            .map_err(|e| PyValueError::new_err(e.to_string()))?
         {
             hashmap
                 .entry(string)
@@ -552,7 +667,7 @@ impl PyLexicon {
                 (
                     s.into_iter()
                         .map(|x| match x {
-                            PhonContent::Normal(s) => s,
+                            PhonContent::Normal(s) => s.to_string(),
                             PhonContent::Affixed(items) => items.join("-"),
                         })
                         .collect(),
@@ -599,7 +714,9 @@ impl PyLexicon {
         Ok(GrammarIterator {
             generator: slf
                 .lexicon
+                .lexicon()
                 .clone()
+                .remap_lexicon(|x| x.to_string(), |y| y.to_string())
                 .into_generate(category, &config)
                 .map_err(|e| anyhow!(e))?,
             max_strings,
@@ -659,8 +776,8 @@ impl PyLexicon {
     }
 
     #[new]
-    fn new(s: &str) -> PyResult<PyLexicon> {
-        PyLexicon::from_lexicon(Lexicon::from_string(s).unwrap().to_owned_values())
+    fn new(s: String) -> PyResult<PyLexicon> {
+        PyLexicon::from_lexicon(SelfOwningLexicon::new(s)?)
     }
 }
 

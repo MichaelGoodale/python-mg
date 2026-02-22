@@ -163,7 +163,7 @@ impl PyLexicon {
     fn token_continuations<'py>(
         slf: PyRef<'py, Self>,
         x: PyReadonlyArrayDyn<'py, usize>,
-        category: String,
+        category: &str,
         min_log_prob: Option<f64>,
         move_prob: f64,
         max_steps: Option<usize>,
@@ -217,7 +217,7 @@ impl PyLexicon {
                     }
                     last_was_affix = true;
                 } else {
-                    let w = tokens.1.get(&c).unwrap().clone();
+                    let w = tokens.1.get(&c).unwrap().as_str();
 
                     let is_affix = s.get(j + 1).is_some_and(|&x| x == AFFIX);
 
@@ -242,13 +242,14 @@ impl PyLexicon {
 
                 let cont = slf
                     .lexicon
+                    .lexicon()
                     .valid_continuations(&category, &v, &config)
                     .map_err(|x| PyValueError::new_err(x.to_string()))?;
 
                 for next in cont {
                     match next {
                         Continuation::Word(w) => {
-                            let c = *tokens.0.get(&w).unwrap();
+                            let c = *tokens.0.get(w).unwrap();
                             (*continuation_matrix.get_mut([i, j, c]).unwrap()) = true;
                         }
                         Continuation::AffixedWord(items) => {
@@ -256,7 +257,7 @@ impl PyLexicon {
 
                             let items = items
                                 .into_iter()
-                                .flat_map(|w| [*tokens.0.get(&w).unwrap(), AFFIX].into_iter())
+                                .flat_map(|w| [*tokens.0.get(w).unwrap(), AFFIX].into_iter())
                                 .take(n);
 
                             let mut last = None;
@@ -380,9 +381,17 @@ impl PyLexicon {
         max_parses: Option<usize>,
     ) -> PyResult<Vec<PySyntacticStructure>> {
         let v = to_phon_content(&s, &slf.word_id)?;
+
         PyLexicon::inner_parse(
             slf,
-            &v,
+            &v.iter()
+                .map(|x| match x {
+                    PhonContent::Normal(x) => PhonContent::Normal(x.as_str()),
+                    PhonContent::Affixed(items) => {
+                        PhonContent::Affixed(items.iter().map(|x| x.as_str()).collect())
+                    }
+                })
+                .collect::<Vec<_>>(),
             category,
             min_log_prob,
             move_prob,
