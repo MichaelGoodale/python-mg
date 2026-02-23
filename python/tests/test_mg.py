@@ -2,6 +2,7 @@ import pytest
 import pickle
 
 from python_mg import Lexicon, Continuation
+from python_mg.semantics import Scenario
 from python_mg.syntax import Trace, Mover
 
 
@@ -37,6 +38,14 @@ Mary::d::a_m
 likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & PatientOf(x, e))"""
     semantic_lexicon = Lexicon(grammar)
     assert semantic_lexicon.is_semantic()
+
+
+def test_scenario():
+    Scenario("<John>")
+    scenarios: list[Scenario] = [
+        x for x in Scenario.all_scenarios(["John", "Mary"], [], ["kind"])
+    ]
+    assert len(scenarios) == 9
 
 
 def test_trees():

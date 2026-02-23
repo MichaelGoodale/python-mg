@@ -9,6 +9,7 @@ name = "python_mg"
 crate-type = ["cdylib"]
 
 [dependencies]
+simple-semantics = { git = "https://github.com/MichaelGoodale/simple-semantics.git" }
 pyo3 = { version = "0.28.0", features = [
   "anyhow",
   "extension-module",

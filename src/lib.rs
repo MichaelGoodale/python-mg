@@ -16,7 +16,12 @@ use pyo3::{exceptions::PyValueError, prelude::*};
 mod graphing;
 use graphing::{PyMgEdge, PyMgNode};
 
-use crate::tokenizers::TokenMap;
+mod semantics;
+
+use crate::{
+    semantics::{PyActor, PyEvent, PyPossibleEvent, PyScenario, PyScenarioIterator},
+    tokenizers::TokenMap,
+};
 
 #[pyclass(name = "SyntacticStructure", str, eq, frozen)]
 #[derive(Debug)]
@@ -790,5 +795,10 @@ fn python_mg(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PySyntacticStructure>()?;
     m.add_class::<PyMgNode>()?;
     m.add_class::<PyMgEdge>()?;
+    m.add_class::<PyScenario>()?;
+    m.add_class::<PyScenarioIterator>()?;
+    m.add_class::<PyActor>()?;
+    m.add_class::<PyEvent>()?;
+    m.add_class::<PyPossibleEvent>()?;
     Ok(())
 }
