@@ -1,6 +1,5 @@
 use super::*;
 
-
 pub(super) fn convert_to_py_actor(name: &str, scenario: &Scenario<'_>) -> PyActor {
     PyActor {
         name: name.to_string(),
@@ -45,7 +44,6 @@ pub(super) fn convert_to_py_event(e_i: u8, scenario: &Scenario<'_>) -> Result<Py
     })
 }
 
-
 #[pyclass(name = "Actor", eq, str, from_py_object)]
 #[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct PyActor {
@@ -88,7 +86,6 @@ impl Display for PyActor {
         )
     }
 }
-
 
 #[pyclass(name = "Event", eq, str, from_py_object)]
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
