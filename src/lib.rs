@@ -730,7 +730,7 @@ impl PyLexicon {
         })
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     #[pyo3(signature = (s, category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256, max_parses=None))]
     ///Parses a string and returns all found parses in a list
     ///The string, s, should be delimited by spaces for words and hyphens for multi-word expressions from head-movement

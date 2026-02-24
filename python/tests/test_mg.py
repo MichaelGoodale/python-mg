@@ -2,7 +2,7 @@ import pytest
 import pickle
 
 from python_mg import Lexicon, Continuation
-from python_mg.semantics import Scenario
+from python_mg.semantics import Scenario, Actor, Event
 from python_mg.syntax import Trace, Mover
 
 
@@ -46,6 +46,19 @@ def test_scenario():
         x for x in Scenario.all_scenarios(["John", "Mary"], [], ["kind"])
     ]
     assert len(scenarios) == 9
+
+    phi = Scenario("<John; {A: John (runs)}>").evaluate(
+        "(lambda a x some_e(e, pe_runs(e), AgentOf(x, e)))(a_John)"
+    )
+    assert isinstance(phi, bool)
+    assert phi
+
+    john = Scenario("<John (cool); {A: John (runs)}>").evaluate(
+        "iota(x, some_e(e, pe_runs(e), AgentOf(x, e)))"
+    )
+    assert isinstance(john, Actor)
+    assert john.name == "John"
+    assert john.properties == {"cool"}
 
 
 def test_trees():

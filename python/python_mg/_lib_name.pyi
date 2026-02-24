@@ -1,3 +1,4 @@
+import datetime
 from typing import Sequence
 import numpy as np
 import numpy.typing as npt
@@ -175,3 +176,51 @@ class Lexicon:
         n_beams: int | None = 256,
     ) -> npt.NDArray[np.bool]:
         pass
+
+class Actor:
+    name: str
+    properties: set[str]
+
+    def __init__(
+        self,
+        name: str,
+        properties: set[str] | None = None,
+    ) -> None: ...
+
+class Event:
+    agent: str | None
+    patient: str | None
+    properties: set[str]
+
+    def __init__(
+        self,
+        agent: str | None = None,
+        patient: str | None = None,
+        properties: set[str] | None = None,
+    ) -> None: ...
+
+class PossibleEvent:
+    has_agent: bool
+    has_patient: bool
+    is_reflexive: bool
+    name: str
+
+class Scenario:
+    actors: list[Actor]
+    events: list[Event]
+
+    def __init__(self, s: str) -> None: ...
+    def evaluate(
+        self,
+        expression: str,
+        max_steps: int | None = 256,
+        timeout: datetime.timedelta | None = None,
+    ) -> bool | Actor | Event | set[Actor] | set[Event]: ...
+    @staticmethod
+    def all_scenarios(
+        actors: list[str], event_kinds: list[PossibleEvent], actor_properties: list[str]
+    ) -> ScenarioIterator: ...
+
+class ScenarioIterator:
+    def __iter__(self) -> ScenarioIterator: ...
+    def __next__(self) -> Scenario: ...
