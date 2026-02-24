@@ -19,7 +19,11 @@ use graphing::{PyMgEdge, PyMgNode};
 mod semantics;
 
 use crate::{
-    semantics::{PyActor, PyEvent, PyPossibleEvent, PyScenario, PyScenarioIterator},
+    semantics::{
+        PyPossibleEvent, PyScenarioIterator,
+        lot_types::{PyActor, PyEvent},
+        scenario::PyScenario,
+    },
     tokenizers::TokenMap,
 };
 
