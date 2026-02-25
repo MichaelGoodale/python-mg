@@ -82,7 +82,6 @@ impl PyScenario {
         format!("Scenario({self})")
     }
 
-    #[pyo3(signature = (expression, max_steps=64, timeout=None))]
     ///Executes an language of thought expression in this scenario. Will potentially throw a PresuppositionException if
     ///something is referenced that isn't in the scenario. It will also reduce any lambda
     ///expressions if possible, and then will only execute the expression if it is fully reducible.
@@ -113,6 +112,7 @@ impl PyScenario {
     ///------
     ///PyErr
     ///    If conversion of an ``Event`` or ``EventSet`` variant fails.
+    #[pyo3(signature = (expression, max_steps=64, timeout=None))]
     fn evaluate<'a>(
         &'a self,
         expression: &'a str,
@@ -124,6 +124,24 @@ impl PyScenario {
         self.execute(expr, Some(ExecutionConfig::new(max_steps, timeout)))
     }
 
+    ///Creates an iterator that goes over all possible scenarios that can be generated according to
+    ///the following parameters. This gets very large very quickly.
+    ///
+    ///Parameters
+    ///----------
+    ///actors: list[str]
+    ///    The actors who may or may not be present.
+    ///event_kinds: list[``PossibleEvent``]
+    ///    The possible kinds of events
+    ///
+    ///Returns
+    ///-------
+    ///``ScenarioGenerator``
+    ///
+    ///Raises
+    ///------
+    ///PyErr
+    ///    If conversion of an ``Event`` or ``EventSet`` variant fails.
     #[staticmethod]
     fn all_scenarios(
         actors: Vec<String>,
@@ -170,20 +188,66 @@ impl PyScenario {
     }
 }
 
+/// A possible linguistic event with theta role structure.
+///
+/// Parameters
+/// ----------
+/// name : str
+///     Identifier for the event.
+/// has_agent : bool, optional
+///     Whether the event has an agent participant. Default is ``True``.
+/// has_patient : bool, optional
+///     Whether the event has a patient participant. Default is ``False``.
+/// is_reflexive : bool, optional
+///     Whether the event allows reflexive construal. Default is ``True``.
 #[pyclass(name = "PossibleEvent", eq, from_py_object)]
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct PyPossibleEvent {
+    ///Whether the event takes an agent
     #[pyo3(get, set)]
     pub has_agent: bool,
+    ///Whether the event takes a patient
     #[pyo3(get, set)]
     pub has_patient: bool,
+    ///Whether the event can have the same agent and patient
+    #[pyo3(get, set)]
     pub is_reflexive: bool,
+    ///The name of this kind of event (e.g. `running` could be a unaccusative event)
     #[pyo3(get, set)]
     pub name: String,
 }
 
+#[pymethods]
 impl PyPossibleEvent {
-    fn event_type(&self) -> EventType {
+    #[new]
+    #[pyo3(signature = (name, has_agent=true, has_patient=false, is_reflexive=true))]
+    fn new(name: String, has_agent: bool, has_patient: bool, is_reflexive: bool) -> Self {
+        PyPossibleEvent {
+            name,
+            has_agent,
+            has_patient,
+            is_reflexive,
+        }
+    }
+
+    /// Classify the event based on its argument structure.
+    ///
+    /// Returns
+    /// -------
+    /// ``Literal['Transitive', 'TransitiveNonReflexive', 'Unergative', 'Unaccusative', 'Avalent']``.
+    fn event_type(&self) -> &'static str {
+        match (self.has_agent, self.has_patient) {
+            (true, true) if self.is_reflexive => "Transitive",
+            (true, true) => "TransitiveNonReflexive",
+            (true, false) => "Unergative",
+            (false, true) => "Unaccusative",
+            (false, false) => "Avalent",
+        }
+    }
+}
+
+impl PyPossibleEvent {
+    fn as_event_type(&self) -> EventType {
         match (self.has_agent, self.has_patient) {
             (true, true) if self.is_reflexive => EventType::Transitive,
             (true, true) => EventType::TransitiveNonReflexive,
@@ -196,7 +260,7 @@ impl PyPossibleEvent {
     fn as_possible_event<'a>(&'a self) -> PossibleEvent<'a> {
         PossibleEvent {
             label: self.name.as_str(),
-            event_type: self.event_type(),
+            event_type: self.as_event_type(),
         }
     }
 }

@@ -44,17 +44,25 @@ pub(super) fn convert_to_py_event(e_i: u8, scenario: &Scenario<'_>) -> Result<Py
     })
 }
 
-/// Represents an actor with a name and a set of properties to be used in Scenarios.
+///Represents an actor with a name and a set of properties to be used in Scenarios.
 ///
-/// Examples
-/// --------
-/// Creating an actor and modifying its properties:
+///Parameters
+///----------
+///name : str
+///    The name of the actor.
+///properties : set[str], optional
+///    Any properties that apply to the actor. Defaults to an empty set.
 ///
-/// .. code-block:: python
 ///
-///     actor = Actor("John", properties={"mean", "unfriendly"})
-///     actor.name = "Alice"
-///     actor.properties = {"nice", "friendly"}
+///Examples
+///--------
+///Creating an actor and modifying its properties:
+///
+///.. code-block:: python
+///
+///    actor = Actor("John", properties={"mean", "unfriendly"})
+///    actor.name = "Alice"
+///    actor.properties = {"nice", "friendly"}
 ///
 #[pyclass(name = "Actor", eq, str, from_py_object)]
 #[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
@@ -72,15 +80,6 @@ pub struct PyActor {
 impl PyActor {
     #[new]
     #[pyo3(signature = (name, properties=None))]
-    ///Parameters
-    ///----------
-    ///name : str
-    ///    The name of the actor.
-    ///properties: set[str], optional
-    ///    Any properties that apply to the actor.
-    ///Returns
-    ///-------
-    ///Actor
     fn new(name: String, properties: Option<BTreeSet<String>>) -> Self {
         PyActor {
             name,
@@ -106,6 +105,26 @@ impl Display for PyActor {
     }
 }
 
+///Represents an event to be used in a Scenario.
+///
+///Parameters
+///----------
+///agent : str, optional
+///    The name of the agent (if there is one)
+///patient : str, optional
+///    The name of the patient (if there is one)
+///properties : set[str], optional
+///    Any properties that apply to the event. Defaults to an empty set.
+///
+///
+///Examples
+///--------
+///Creating an event
+///
+///.. code-block:: python
+///
+///    running = Actor(agent="John", properties={"run", "quickly"})
+///
 #[pyclass(name = "Event", eq, str, from_py_object)]
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct PyEvent {
@@ -121,17 +140,7 @@ pub struct PyEvent {
 impl PyEvent {
     #[new]
     #[pyo3(signature = (agent=None, patient=None, properties=None))]
-    ///Parameters
-    ///----------
-    ///agent : str, optional
-    ///    The name of the agent (if there is one)
-    ///patient : str, optional
-    ///    The name of the patient (if there is one)
-    ///properties: set[str], optional
-    ///    Any properties that apply to the actor.
-    ///Returns
-    ///-------
-    ///Event
+
     fn new(
         agent: Option<String>,
         patient: Option<String>,

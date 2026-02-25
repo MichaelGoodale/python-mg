@@ -78,6 +78,7 @@ def grammar_f1_from_strings(
     Parameters
     ----------
     lexicon : Lexicon
+        the lexicon to use as ground truth for the measurement
     tokens : ndarray of int
         Token IDs representing the input sequences. Shape (..., seq_length).
     preds : ndarray of float64

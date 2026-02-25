@@ -1,5 +1,5 @@
 import datetime
-from typing import Sequence
+from typing import Literal, Sequence
 import numpy as np
 import numpy.typing as npt
 
@@ -148,6 +148,21 @@ class PossibleEvent:
     has_patient: bool
     is_reflexive: bool
     name: str
+
+    def __init__(
+        self,
+        name: str,
+        has_agent: bool = True,
+        has_patient: bool = False,
+        is_reflexive: bool = True,
+    ) -> None: ...
+    def event_kind(self) -> Literal[
+        "Transitive",
+        "TransitiveNonReflexive",
+        "Unergative",
+        "Unaccusative",
+        "Avalent",
+    ]: ...
 
 class Scenario:
     actors: list[Actor]

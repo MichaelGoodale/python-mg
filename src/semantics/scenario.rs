@@ -1,5 +1,16 @@
 use super::*;
 
+///Represents a Scenario, a model that meanings are evaluated in.
+///
+///Parameters
+///----------
+///actors : list[Actor]
+///    The actors present in the scenario
+///events: list[Event]
+///    The events happening in the scenario
+///events: list[str]
+///    The questions in a scenario. (Will raise a `ValueError` if set with a `str` which is not a
+///    valid Language of Thought expression)
 #[pyclass(name = "Scenario", str, eq, from_py_object)]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PyScenario {
