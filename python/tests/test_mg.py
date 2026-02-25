@@ -38,7 +38,7 @@ runs::=d v::lambda a x some_e(e, pe_run(e), AgentOf(x,e))
 Mary::d::a_Mary
 likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & PatientOf(x, e))"""
     lexicon = Lexicon(grammar)
-    strings = [" ".join(p.pronunciation()) for p in lexicon.generate_grammar("v")]
+    strings = [str(p) for p in lexicon.generate_grammar("v")]
     assert strings == [
         "John runs",
         "Mary runs",

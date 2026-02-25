@@ -124,6 +124,22 @@ impl Display for SelfOwningLexicon {
 ///--------
 ///Generating all sentences of a grammar.
 ///
+///.. code-block:: python
+///
+///    grammar = """John::d
+///    runs::=d v
+///    Mary::d
+///    likes::d= =d v"""
+///    lexicon = Lexicon(grammar)
+///    strings = [str(p) for p in lexicon.generate_grammar("v")]
+///    assert strings == [
+///        "John runs",
+///        "Mary runs",
+///        "Mary likes John",
+///        "John likes John",
+///        "John likes Mary",
+///        "Mary likes Mary",
+///    ]
 ///
 ///Creating a lexicon with interpretations and getting the interpretation of a sentence.
 ///
