@@ -113,7 +113,10 @@ impl PyScenario {
     ) -> PyResult<LanguageResultWrapper<'a>> {
         let expr = RootedLambdaPool::parse(expression)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
-        self.execute(expr, Some(ExecutionConfig::new(max_steps, timeout)))
+        self.execute(
+            expr,
+            Some(ExecutionConfig::new(max_steps, timeout).allow_empty_quantification()),
+        )
     }
 
     ///Creates a generator that goes over all possible scenarios that can be generated according to
