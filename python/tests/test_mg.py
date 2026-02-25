@@ -32,9 +32,26 @@ def test_memory_load() -> None:
     assert parse.max_memory_load() == 1
 
 
+def test_generation() -> None:
+    grammar = """John::d::a_John
+runs::=d v::lambda a x some_e(e, pe_run(e), AgentOf(x,e))
+Mary::d::a_Mary
+likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & PatientOf(x, e))"""
+    lexicon = Lexicon(grammar)
+    strings = [" ".join(p.pronunciation()) for p in lexicon.generate_grammar("v")]
+    assert strings == [
+        "John runs",
+        "Mary runs",
+        "Mary likes John",
+        "John likes John",
+        "John likes Mary",
+        "Mary likes Mary",
+    ]
+
+
 def test_semantic_lexicon() -> None:
     grammar = """John::d::a_John
-run::=d v::lambda a x some_e(e, pe_run(e), AgentOf(x,e))
+runs::=d v::lambda a x some_e(e, pe_run(e), AgentOf(x,e))
 Mary::d::a_Mary
 likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & PatientOf(x, e))"""
     semantic_lexicon = Lexicon(grammar)

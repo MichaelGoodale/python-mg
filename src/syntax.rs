@@ -108,6 +108,19 @@ impl PySyntacticStructure {
         &self.meaning
     }
 
+    ///The pronunciation of this SyntacticStructure.
+    ///
+    ///Returns
+    ///-------
+    ///list[str]
+    ///    A list of strings of each word. Multi-morphemic words are seperated by `-`.
+    fn pronunciation(&self) -> Vec<String> {
+        self.string
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<_>>()
+    }
+
     ///The log probability of generating this SyntacticStructure using its associated Lexicon.
     ///
     ///Returns

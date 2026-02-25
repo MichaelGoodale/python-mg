@@ -14,11 +14,14 @@ use super::*;
 #[pyclass(name = "Scenario", str, eq, from_py_object)]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PyScenario {
+    ///A list of Actors in the scenario
     #[pyo3(get, set)]
     actors: Vec<PyActor>,
+    ///A list of Events in the scenario
     #[pyo3(get, set)]
     events: Vec<PyEvent>,
 
+    ///A list of questions to be asked in the scenario
     #[pyo3(get)]
     questions: Vec<String>,
 }

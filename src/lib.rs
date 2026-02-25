@@ -107,7 +107,42 @@ impl Display for SelfOwningLexicon {
 )]
 #[derive(Debug, Clone, Eq, PartialEq)]
 ///A MG grammar that can be used to generate SyntacticStructures or parse strings into
-///SyntacticStructures
+///SyntacticStructures.
+///
+///You may include semantic interpretations or not. You may also generate all valid sentences in the grammar.
+///
+///Parameters
+///----------
+///s : str
+///     
+///Raises
+///------
+///ValueError
+///    If the string is not a valid lexicon.
+///
+///Examples
+///--------
+///Generating all sentences of a grammar.
+///
+///
+///Creating a lexicon with interpretations and getting the interpretation of a sentence.
+///
+///.. code-block:: python
+///
+///    grammar = """John::d::a_John
+///    run::=d v::lambda a x some_e(e, pe_run(e), AgentOf(x,e))
+///    Mary::d::a_Mary
+///    likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & PatientOf(x, e))"""
+///        semantic_lexicon = Lexicon(grammar)
+///        assert semantic_lexicon.is_semantic()
+///        s = semantic_lexicon.parse("John likes Mary", "v")
+///        assert len(s) == 1
+///        parse = s[0]
+///        assert parse.meaning is not None
+///        assert parse.meaning == [
+///            "some_e(x, pe_likes(x), AgentOf(a_John, x) & PatientOf(a_Mary, x))"
+///        ]
+///    
 struct PyLexicon {
     word_id: TokenMap,
     lexeme_to_id: HashMap<LexicalEntry<&'static str, &'static str>, LexemeId>,

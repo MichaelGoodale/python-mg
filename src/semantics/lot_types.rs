@@ -128,10 +128,15 @@ impl Display for PyActor {
 #[pyclass(name = "Event", eq, str, from_py_object)]
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct PyEvent {
+    ///The agent of the event.
     #[pyo3(get, set)]
     pub agent: Option<String>,
+
+    ///The patient of the event.
     #[pyo3(get, set)]
     pub patient: Option<String>,
+
+    ///Any properties of the event.
     #[pyo3(get, set)]
     pub properties: BTreeSet<String>,
 }

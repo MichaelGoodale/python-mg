@@ -99,19 +99,11 @@ impl PyScenario {
     ///Returns
     ///-------
     ///bool or Actor or Event or set[Actor] or set[Event]
-    ///    The result of the language evaluation, typed according to the
-    ///    expression's return kind:
-    ///
-    ///    - ``bool`` — a plain boolean value.
-    ///    - ``Actor`` — a single actor resolved from the model.
-    ///    - ``Event`` — a single event resolved from the model.
-    ///    - ``set[Actor]`` — an unordered collection of actors.
-    ///    - ``set[Event]`` — an unordered collection of events.
-    ///
+    ///    the value of the expression
     ///Raises
     ///------
-    ///PyErr
-    ///    If conversion of an ``Event`` or ``EventSet`` variant fails.
+    ///ValueError
+    ///    If the expression is incorrectly formatted or if there is a presupposition error.
     #[pyo3(signature = (expression, max_steps=64, timeout=None))]
     fn evaluate<'a>(
         &'a self,
@@ -124,24 +116,19 @@ impl PyScenario {
         self.execute(expr, Some(ExecutionConfig::new(max_steps, timeout)))
     }
 
-    ///Creates an iterator that goes over all possible scenarios that can be generated according to
-    ///the following parameters. This gets very large very quickly.
+    ///Creates a generator that goes over all possible scenarios that can be generated according to
+    ///the its parameters. This gets very large very quickly.
     ///
     ///Parameters
     ///----------
-    ///actors: list[str]
+    ///actors : list[str]
     ///    The actors who may or may not be present.
-    ///event_kinds: list[``PossibleEvent``]
+    ///event_kinds : list[``PossibleEvent``]
     ///    The possible kinds of events
     ///
     ///Returns
     ///-------
-    ///``ScenarioGenerator``
-    ///
-    ///Raises
-    ///------
-    ///PyErr
-    ///    If conversion of an ``Event`` or ``EventSet`` variant fails.
+    ///ScenarioGenerator
     #[staticmethod]
     fn all_scenarios(
         actors: Vec<String>,
@@ -234,7 +221,7 @@ impl PyPossibleEvent {
     ///
     /// Returns
     /// -------
-    /// ``Literal['Transitive', 'TransitiveNonReflexive', 'Unergative', 'Unaccusative', 'Avalent']``.
+    /// Literal['Transitive', 'TransitiveNonReflexive', 'Unergative', 'Unaccusative', 'Avalent'].
     fn event_type(&self) -> &'static str {
         match (self.has_agent, self.has_patient) {
             (true, true) if self.is_reflexive => "Transitive",
@@ -265,6 +252,11 @@ impl PyPossibleEvent {
     }
 }
 
+///Yields
+///------
+///Scenario
+///    Another scenario that can be generated according to the parameters.
+///
 #[pyclass(name = "ScenarioGenerator", eq, from_py_object)]
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct PyScenarioGenerator {
