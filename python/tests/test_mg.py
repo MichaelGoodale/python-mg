@@ -38,10 +38,19 @@ Mary::d::a_m
 likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & PatientOf(x, e))"""
     semantic_lexicon = Lexicon(grammar)
     assert semantic_lexicon.is_semantic()
+    s = semantic_lexicon.parse("John likes Mary", "v")
+    assert len(s) == 1
+    parse = s[0]
+    assert parse.meaning == [
+        "some_e(x, pe_likes(x), AgentOf(a_j, x) & PatientOf(a_m, x))"
+    ]
 
 
 def test_scenario():
-    Scenario("<John>")
+    s = Scenario("<John (nice, quick); {A: John (run)}>")
+    assert s.actors == [Actor("John", properties={"nice", "quick"})]
+    assert s.events == [Event(agent="John", properties={"run"})]
+
     scenarios: list[Scenario] = [
         x for x in Scenario.all_scenarios(["John", "Mary"], [], ["kind"])
     ]

@@ -57,6 +57,10 @@ class SyntacticStructure:
     def tokens(self) -> npt.NDArray[np.uint]:
         """Converts the string of this SyntacticStructure into a tokenized numpy array"""
 
+    @property
+    def meaning(self) -> list[str] | None:
+        """Returns the associated meaning(s), if there is one"""
+
     def __to_tree_inner(
         self,
     ) -> tuple[list[tuple[int, MGNode]], list[tuple[int, int, MGEdge]], int]: ...

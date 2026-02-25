@@ -15,6 +15,7 @@ pub struct PySyntacticStructure {
     prob: LogProb<f64>,
     string: Vec<PhonContent<String>>,
     rules: RulePool,
+    meaning: Option<Vec<String>>,
     lex: Py<PyLexicon>,
 }
 
@@ -49,6 +50,12 @@ impl PySyntacticStructure {
     ) -> PySyntacticStructure {
         PySyntacticStructure {
             prob,
+            meaning: lex.get().semantics().map(|lex| {
+                rules
+                    .to_interpretation(lex)
+                    .map(|(a, _)| a.to_string())
+                    .collect()
+            }),
             rules,
             string,
             lex,
@@ -63,6 +70,12 @@ impl PySyntacticStructure {
     ) -> PySyntacticStructure {
         PySyntacticStructure {
             prob,
+            meaning: lexicon.get().semantics().map(|lex| {
+                rules
+                    .to_interpretation(lex)
+                    .map(|(a, _)| a.to_string())
+                    .collect()
+            }),
             rules,
             string: string
                 .iter()
@@ -88,6 +101,13 @@ impl PySyntacticStructure {
 
 #[pymethods]
 impl PySyntacticStructure {
+    ///Returns the interpretation of this SyntacticStructure, provided that its associated Lexicon
+    ///has semantics
+    #[getter]
+    fn meaning(&self) -> &Option<Vec<String>> {
+        &self.meaning
+    }
+
     ///The log probability of generating this SyntacticStructure using its associated Lexicon.
     ///
     ///Returns

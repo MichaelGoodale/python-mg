@@ -75,10 +75,18 @@ impl SelfOwningLexicon {
         })
     }
 
-    fn lexicon(&self) -> &Lexicon<&'static str, &'static str> {
+    #[expect(clippy::needless_lifetimes)]
+    fn lexicon<'a>(&'a self) -> &'a Lexicon<&'a str, &'a str> {
         match &self.lexicon {
             PossiblySemanticLexicon::Normal(lexicon) => lexicon,
             PossiblySemanticLexicon::Semantic(semantic_lexicon) => semantic_lexicon.lexicon(),
+        }
+    }
+
+    fn semantic_lexicon<'a>(&'a self) -> Option<&'a SemanticLexicon<'a, &'a str, &'a str>> {
+        match &self.lexicon {
+            PossiblySemanticLexicon::Normal(_) => None,
+            PossiblySemanticLexicon::Semantic(lex) => Some(lex),
         }
     }
 }
@@ -115,6 +123,12 @@ impl Display for PyLexicon {
     }
 }
 
+impl PyLexicon {
+    fn semantics<'a>(&'a self) -> Option<&'a SemanticLexicon<'a, &'a str, &'a str>> {
+        self.lexicon.semantic_lexicon()
+    }
+}
+
 #[pyclass]
 struct GrammarIterator {
     generator: Generator<Lexicon<String, String>, String, String>,
@@ -130,10 +144,10 @@ impl GrammarIterator {
     }
 
     fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<PySyntacticStructure> {
-        if let Some(n) = slf.max_strings {
-            if slf.n_strings >= n {
-                return None;
-            }
+        if let Some(n) = slf.max_strings
+            && slf.n_strings >= n
+        {
+            return None;
         }
 
         if let Some((prob, string, rules)) = slf.generator.next() {
@@ -265,21 +279,31 @@ fn get_config(
 
 impl PyLexicon {
     fn from_lexicon(lexicon: SelfOwningLexicon) -> PyResult<Self> {
+        //unsafe here because the lexicon has the lifetime of the reference of the SelfOwningLexicon.
+        //We are owning it in the arc, so we have to make sure we can refer to it.
+
         let lexeme_to_id: HashMap<_, LexemeId> = lexicon
             .lexicon()
             .lexemes_and_ids()
             .map_err(|e| anyhow!(e))?
-            .map(|(id, entry)| (entry, id))
+            .map(|(id, entry)| {
+                let entry: LexicalEntry<&'static str, &'static str> =
+                    unsafe { std::mem::transmute(entry) };
+                (entry, id)
+            })
             .collect();
 
         let mut lemma_to_id = HashMap::default();
         let mut word_id = TokenMap::default();
 
         for leaf in lexicon.lexicon().leaves().iter().copied() {
-            let lemma = *lexicon
+            let lemma = lexicon
                 .lexicon()
                 .leaf_to_lemma(leaf)
                 .expect("Invalid lexicon!");
+
+            let lemma: Pronounciation<&'static str> = unsafe { std::mem::transmute(*lemma) };
+
             if let Pronounciation::Pronounced(word) = lemma.as_ref() {
                 word_id.add_word(word);
             }
@@ -476,10 +500,10 @@ impl PyLexicon {
                 })
                 .or_insert(prob);
 
-            if let Some(max_strings) = max_strings {
-                if hashmap.len() > max_strings {
-                    break;
-                }
+            if let Some(max_strings) = max_strings
+                && hashmap.len() > max_strings
+            {
+                break;
             }
         }
 

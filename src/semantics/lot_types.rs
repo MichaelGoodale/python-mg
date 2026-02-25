@@ -72,6 +72,10 @@ impl PyActor {
             properties: properties.unwrap_or_default(),
         }
     }
+
+    fn __repr__(&self) -> String {
+        format!("Actor({self})")
+    }
 }
 
 impl Display for PyActor {
@@ -123,6 +127,10 @@ impl PyEvent {
             patient,
             properties: properties.unwrap_or_default(),
         }
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Event({self})")
     }
 }
 
