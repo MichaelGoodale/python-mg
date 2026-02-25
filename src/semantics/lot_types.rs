@@ -44,11 +44,26 @@ pub(super) fn convert_to_py_event(e_i: u8, scenario: &Scenario<'_>) -> Result<Py
     })
 }
 
+/// Represents an actor with a name and a set of properties to be used in Scenarios.
+///
+/// Examples
+/// --------
+/// Creating an actor and modifying its properties:
+///
+/// .. code-block:: python
+///
+///     actor = Actor("John", properties={"mean", "unfriendly"})
+///     actor.name = "Alice"
+///     actor.properties = {"nice", "friendly"}
+///
 #[pyclass(name = "Actor", eq, str, from_py_object)]
 #[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct PyActor {
+    /// The name of the actor
     #[pyo3(get, set)]
     pub name: String,
+
+    /// An unordered set of properties that apply to this actor
     #[pyo3(get, set)]
     pub properties: BTreeSet<String>,
 }
