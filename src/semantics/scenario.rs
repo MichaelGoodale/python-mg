@@ -7,6 +7,9 @@ pub struct PyScenario {
     actors: Vec<PyActor>,
     #[pyo3(get, set)]
     events: Vec<PyEvent>,
+
+    #[pyo3(get)]
+    questions: Vec<String>,
 }
 
 impl From<Scenario<'_>> for PyScenario {
@@ -51,7 +54,26 @@ impl From<Scenario<'_>> for PyScenario {
             })
             .collect();
 
-        PyScenario { actors, events }
+        let questions = value.questions().iter().map(|x| x.to_string()).collect();
+
+        PyScenario {
+            actors,
+            events,
+            questions,
+        }
+    }
+}
+
+#[pymethods]
+impl PyScenario {
+    #[setter]
+    fn set_questions(&mut self, questions: Vec<String>) -> PyResult<()> {
+        for q in &questions {
+            let _ = RootedLambdaPool::parse(q).map_err(|e| PyValueError::new_err(e.to_string()))?;
+        }
+
+        self.questions = questions;
+        Ok(())
     }
 }
 

@@ -10,16 +10,18 @@ def grammar_f1(
     preds: npt.NDArray[np.float64],
     correct: npt.NDArray[np.bool],
 ) -> dict[str, npt.NDArray[np.float64]]:
-    """
-    Compute grammar F1 scores from boolean arrays of valid next moves and predictions.
-    The metric is described in  `Meta-Learning Neural Mechanisms rather than Bayesian Priors <https://aclanthology.org/2025.acl-long.860/>`_ (Goodale et al., ACL 2025)
+    """Compute grammar F1 scores from boolean arrays of next moves and predictions.
+
+    The metric is described in  `Meta-Learning Neural Mechanisms rather than Bayesian
+    Priors <https://aclanthology.org/2025.acl-long.860/>`_ (Goodale et al., ACL 2025)
 
     Parameters
     ----------
     preds : ndarray of float64
         Predicted log probabilities for each token. Shape (..., seq_length, vocab_size).
     correct: ndarray of int
-        Boolean array for each valid token that can come next at that point in the sequence. Shape (..., seq_length, vocab_size).
+        Boolean array for each next valid token in the sequence.
+        Shape (..., seq_length, vocab_size).
 
     Returns
     -------
@@ -29,6 +31,7 @@ def grammar_f1(
         - 'precision': Precision scores
         - 'recall': Recall scores
         - 'f1': F1 scores
+
     """
     if preds.shape != correct.shape:
         raise ValueError("correct and preds must have matching shapes")
@@ -66,9 +69,10 @@ def grammar_f1_from_strings(
     n_beams: int | None = 256,
     reduction: Literal["none", "sentence_mean", "length_mean"] = "sentence_mean",
 ) -> dict[str, npt.NDArray[np.float64]]:
-    """
-    Compute grammar F1 scores from token sequences and predictions.
-    The metric is described in  `Meta-Learning Neural Mechanisms rather than Bayesian Priors <https://aclanthology.org/2025.acl-long.860/>`_ (Goodale et al., ACL 2025)
+    """Compute grammar F1 scores from token sequences and predictions.
+
+    The metric is described in  `Meta-Learning Neural Mechanisms rather than Bayesian
+    Priors <https://aclanthology.org/2025.acl-long.860/>`_ (Goodale et al., ACL 2025)
 
 
     Parameters
@@ -108,11 +112,11 @@ def grammar_f1_from_strings(
         - 'precision': Precision scores
         - 'recall': Recall scores
         - 'f1': F1 scores
-    """
 
+    """
     if np.any(tokens < 0):
         raise ValueError(
-            "Some tokens are negative which means they will be cast to unsigned integers incorrectly"
+            "Some tokens are negative meaning they will be cast to unsigned integers incorrectly"
         )
 
     conts = lexicon.token_continuations(

@@ -129,7 +129,7 @@ impl PyScenario {
         actors: Vec<String>,
         event_kinds: Vec<PyPossibleEvent>,
         actor_properties: Vec<String>,
-    ) -> PyScenarioIterator {
+    ) -> PyScenarioGenerator {
         let parameter_holder = Arc::new(ParameterHolder {
             actors,
             event_kinds,
@@ -163,7 +163,7 @@ impl PyScenario {
             })
             .collect::<Vec<_>>();
 
-        PyScenarioIterator {
+        PyScenarioGenerator {
             generator: Scenario::all_scenarios(&actors, &event_kinds, &properties),
             _parameter_holder: parameter_holder,
         }
@@ -201,14 +201,15 @@ impl PyPossibleEvent {
     }
 }
 
-#[pyclass(name = "ScenarioGenerator")]
-pub struct PyScenarioIterator {
+#[pyclass(name = "ScenarioGenerator", eq, from_py_object)]
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
+pub struct PyScenarioGenerator {
     generator: ScenarioIterator<'static>,
     _parameter_holder: Arc<ParameterHolder>,
 }
 
 #[pymethods]
-impl PyScenarioIterator {
+impl PyScenarioGenerator {
     fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
         slf
     }
@@ -218,6 +219,7 @@ impl PyScenarioIterator {
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 struct ParameterHolder {
     actors: Vec<String>,
     event_kinds: Vec<PyPossibleEvent>,

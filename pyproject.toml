@@ -12,10 +12,10 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-    "numpy>=1.24.4",
-    "pillow>=10.4.0",
-    "pydot>=4.0.1",
-    "rustworkx>=0.15.1",
+  "numpy>=1.24.4",
+  "pillow>=10.4.0",
+  "pydot>=4.0.1",
+  "rustworkx>=0.15.1",
 ]
 [tool.maturin]
 features = ["pyo3/extension-module"]
@@ -24,16 +24,16 @@ module-name = "python_mg._lib_name"
 
 [dependency-groups]
 dev = [
-    "patchelf>=0.17.2.2",
-    "pytest>=8.3.5",
-    "sphinx>=7.1.2",
-    "sphinx-rtd-theme>=3.0.2",
+  "patchelf>=0.17.2.2",
+  "pytest>=8.3.5",
+  "sphinx>=7.1.2",
+  "sphinx-rtd-theme>=3.0.2",
 ]
 examples = [
-    "datasets>=3.1.0",
-    "scipy>=1.10.1",
-    "torch>=2.5.1",
-    "transformers[torch]>=4.46.3",
+  "datasets>=3.1.0",
+  "scipy>=1.10.1",
+  "torch>=2.5.1",
+  "transformers[torch]>=4.46.3",
 ]
 
 [tool.setuptools.package-data]
@@ -43,4 +43,12 @@ examples = [
 where = ["src"]
 
 [tool.uv]
-cache-keys = [{file = "pyproject.toml"}, {file = "Cargo.toml"}, {file = "**/*.rs"}]
+cache-keys = [
+  { file = "pyproject.toml" },
+  { file = "Cargo.toml" },
+  { file = "**/*.rs" },
+]
+
+[tool.ruff.lint]
+ignore = ["E501"]
+select = ["E", "F", "D", "ANN"]

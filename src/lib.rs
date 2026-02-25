@@ -23,7 +23,7 @@ use syntax::PySyntacticStructure;
 
 use crate::{
     semantics::{
-        PyPossibleEvent, PyScenarioIterator,
+        PyPossibleEvent, PyScenarioGenerator,
         lot_types::{PyActor, PyEvent},
         scenario::PyScenario,
     },
@@ -639,7 +639,7 @@ fn python_mg(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyMgNode>()?;
     m.add_class::<PyMgEdge>()?;
     m.add_class::<PyScenario>()?;
-    m.add_class::<PyScenarioIterator>()?;
+    m.add_class::<PyScenarioGenerator>()?;
     m.add_class::<PyActor>()?;
     m.add_class::<PyEvent>()?;
     m.add_class::<PyPossibleEvent>()?;
