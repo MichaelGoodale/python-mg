@@ -118,6 +118,17 @@ impl PySyntacticStructure {
         self.prob.into_inner()
     }
 
+    ///Check whether this string (representing a lexical entry) is used in this tree.
+    ///
+    ///Returns
+    ///-------
+    ///bool
+    ///    Whether the lexical entry is used
+    ///
+    ///Raises
+    ///------
+    ///ValueException
+    ///    If the lexical entry is not parseable as a lexical entry.
     fn contains_lexical_entry(&self, s: &str) -> PyResult<bool> {
         let lex = self.lex.get();
         let entry = LexicalEntry::parse(s).map_err(|e| PyValueError::new_err(e.to_string()))?;

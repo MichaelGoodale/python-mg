@@ -360,6 +360,7 @@ impl PyLexicon {
 
 #[pymethods]
 impl PyLexicon {
+    ///Check if this lexicon has semantics
     fn is_semantic(&self) -> bool {
         matches!(self.lexicon.lexicon, PossiblySemanticLexicon::Semantic(_))
     }
