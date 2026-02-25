@@ -341,7 +341,7 @@ checksum = "2687e6cf9c00f48e9284cf9fd15f2ef341d03cc7743abf9df4c5f07fdee50b18"
 [[package]]
 name = "minimalist-grammar-parser"
 version = "0.1.0"
-source = "git+https://github.com/MichaelGoodale/minimalist-grammar-parser.git#342aac1c51c1c4125e2b7ca27e9d91cde3ac73ed"
+source = "git+https://github.com/MichaelGoodale/minimalist-grammar-parser.git#4876725b425835b5a205d94fe93aab8c68046e9b"
 dependencies = [
  "ahash 0.8.12",
  "bitvec",
@@ -557,11 +557,13 @@ name = "python-mg"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "itertools",
  "logprob",
  "minimalist-grammar-parser",
  "numpy",
  "pyo3",
  "rand",
+ "simple-semantics",
 ]
 
 [[package]]
@@ -636,7 +638,7 @@ dependencies = [
  "aho-corasick",
  "memchr",
  "regex-automata 0.4.14",
- "regex-syntax 0.8.9",
+ "regex-syntax 0.8.10",
 ]
 
 [[package]]
@@ -658,7 +660,7 @@ checksum = "6e1dd4122fc1595e8162618945476892eefca7b88c52820e74af6262213cae8f"
 dependencies = [
  "aho-corasick",
  "memchr",
- "regex-syntax 0.8.9",
+ "regex-syntax 0.8.10",
 ]
 
 [[package]]
@@ -669,9 +671,9 @@ checksum = "dbb5fb1acd8a1a18b3dd5be62d25485eb770e05afb408a9627d14d451bae12da"
 
 [[package]]
 name = "regex-syntax"
-version = "0.8.9"
+version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a96887878f22d7bad8a3b6dc5b7440e0ada9a245242924394987b21cf2210a4c"
+checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
 
 [[package]]
 name = "rustc-hash"
@@ -743,11 +745,12 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 [[package]]
 name = "simple-semantics"
 version = "0.1.0"
-source = "git+https://github.com/MichaelGoodale/simple-semantics.git#2cef7d759b37c4a466b068f984bb549ec040b218"
+source = "git+https://github.com/MichaelGoodale/simple-semantics.git#86afc64524a554b08ca693c7911671d919fb6413"
 dependencies = [
  "ahash 0.8.12",
  "chumsky",
  "itertools",
+ "rand",
  "serde",
  "serde_json",
  "thiserror",

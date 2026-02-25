@@ -1,11 +1,13 @@
-import pytest
+# ruff: disable[D103,D100,E501]
+
 import pickle
 
 from python_mg import Lexicon, Continuation
+from python_mg.semantics import Scenario, Actor, Event
 from python_mg.syntax import Trace, Mover
 
 
-def test_lexicon():
+def test_lexicon() -> None:
     x = Lexicon("a::b= a\nb::b")
     assert [str(s) for s in x.generate_grammar("a")] == ["a b"]
     parse = next(x.generate_grammar("a"))
@@ -15,13 +17,13 @@ def test_lexicon():
     )
 
 
-def test_pickling():
+def test_pickling() -> None:
     x = Lexicon("a::b= a\nb::b")
     x_pickle = pickle.dumps(x)
     assert pickle.loads(x_pickle) == x
 
 
-def test_memory_load():
+def test_memory_load() -> None:
     grammar = Lexicon("a::b= c= +a +e C\nb::b -a\nc::c -e")
     parse = grammar.parse("c b a", "C")[0]
     assert parse.max_memory_load() == 2
@@ -30,16 +32,77 @@ def test_memory_load():
     assert parse.max_memory_load() == 1
 
 
-def test_semantic_lexicon():
-    grammar = """John::d::a_j
-run::=d v::lambda a x some_e(e, pe_run(e), AgentOf(x,e))
-Mary::d::a_m
+def test_generation() -> None:
+    grammar = """John::d::a_John
+runs::=d v::lambda a x some_e(e, pe_run(e), AgentOf(x,e))
+Mary::d::a_Mary
+likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & PatientOf(x, e))"""
+    lexicon = Lexicon(grammar)
+    strings = [str(p) for p in lexicon.generate_grammar("v")]
+    assert strings == [
+        "John runs",
+        "Mary runs",
+        "Mary likes John",
+        "John likes John",
+        "John likes Mary",
+        "Mary likes Mary",
+    ]
+
+
+def test_semantic_lexicon() -> None:
+    grammar = """John::d::a_John
+runs::=d v::lambda a x some_e(e, pe_run(e), AgentOf(x,e))
+Mary::d::a_Mary
 likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & PatientOf(x, e))"""
     semantic_lexicon = Lexicon(grammar)
     assert semantic_lexicon.is_semantic()
+    s = semantic_lexicon.parse("John likes Mary", "v")
+    assert len(s) == 1
+    parse = s[0]
+    assert parse.meaning is not None
+    assert parse.meaning == [
+        "some_e(x, pe_likes(x), AgentOf(a_John, x) & PatientOf(a_Mary, x))"
+    ]
+    meaning: str = parse.meaning[0]
+
+    s = Scenario(
+        "<John (nice, quick), Mary (sweet); {A: John, P: Mary (likes)}> lambda a x some_e(e, pe_likes(e), AgentOf(x, e)); lambda a x some_e(e, pe_likes(e), PatientOf(x, e))"
+    )
+    assert len(s.questions) == 2
+
+    assert s.evaluate(meaning)
+    answers = [
+        s.evaluate(f"({q})(a_{name})") for q, name in zip(s.questions, ["John", "Mary"])
+    ]
+    assert answers[0]
+    assert answers[1]
 
 
-def test_trees():
+def test_scenario() -> None:
+    s = Scenario("<John (nice, quick); {A: John (run)}>")
+    assert s.actors == [Actor("John", properties={"nice", "quick"})]
+    assert s.events == [Event(agent="John", properties={"run"})]
+
+    scenarios: list[Scenario] = [
+        x for x in Scenario.all_scenarios(["John", "Mary"], [], ["kind"])
+    ]
+    assert len(scenarios) == 9
+
+    phi = Scenario("<John; {A: John (runs)}>").evaluate(
+        "(lambda a x some_e(e, pe_runs(e), AgentOf(x, e)))(a_John)"
+    )
+    assert isinstance(phi, bool)
+    assert phi
+
+    john = Scenario("<John (cool); {A: John (runs)}>").evaluate(
+        "iota(x, some_e(e, pe_runs(e), AgentOf(x, e)))"
+    )
+    assert isinstance(john, Actor)
+    assert john.name == "John"
+    assert john.properties == {"cool"}
+
+
+def test_trees() -> None:
     grammar = """
 ::T= C
 ::T= +W C
@@ -116,7 +179,7 @@ which::N= D -W"""
         assert tree.to_dot() == digraph
 
 
-def test_continuations():
+def test_continuations() -> None:
     x = Lexicon("a::b= S\nb::b")
     assert x.continuations("a", "S") == {Continuation("b")}
     x = Lexicon("a::S= b= S\n::S\nb::b")

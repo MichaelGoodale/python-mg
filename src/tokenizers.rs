@@ -371,7 +371,7 @@ impl PyLexicon {
     ///    list of :meth:`python_mg.SyntacticStructure`
     ///    List of all parses of the token string
     fn parse_tokens(
-        slf: PyRef<'_, Self>,
+        slf: &Bound<'_, Self>,
         s: Vec<usize>,
         category: String,
         min_log_prob: Option<f64>,
@@ -380,7 +380,7 @@ impl PyLexicon {
         n_beams: Option<usize>,
         max_parses: Option<usize>,
     ) -> PyResult<Vec<PySyntacticStructure>> {
-        let v = to_phon_content(&s, &slf.word_id)?;
+        let v = to_phon_content(&s, &slf.borrow().word_id)?;
 
         PyLexicon::inner_parse(
             slf,
@@ -411,10 +411,10 @@ impl PySyntacticStructure {
     ///ndarray of uint
     ///    the tokenized string.
     fn tokens<'py>(slf: PyRef<'py, Self>) -> Bound<'py, PyArray1<usize>> {
-        let tokens = slf.lex.get().tokens();
+        let tokens = slf.lex().get().tokens();
 
         let mut output = vec![SOS];
-        for c in &slf.string {
+        for c in slf.string() {
             match c {
                 PhonContent::Normal(w) => output.push(
                     *tokens

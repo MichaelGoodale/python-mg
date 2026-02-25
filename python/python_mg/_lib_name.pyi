@@ -1,4 +1,5 @@
-from typing import Sequence
+import datetime
+from typing import Literal, Sequence
 import numpy as np
 import numpy.typing as npt
 
@@ -6,93 +7,57 @@ from python_mg.syntax import ParseTree
 
 class MGNode:
     def is_trace(self) -> bool: ...
-    def trace_id(self) -> int:
-        """Gets the trace id of traces and raises an error otherwise"""
-
-    def lemma_string(self) -> str:
-        """Format the node as a string in a tree if leaf or trace"""
-
-    def is_stolen(self) -> str:
-        """Checks if the head has been stolen by head-movement"""
+    def trace_id(self) -> int: ...
+    def lemma_string(self) -> str: ...
+    def is_stolen(self) -> str: ...
 
 class MGEdge:
-    def is_move(self) -> bool:
-        """Checks whether the edge is a movement edge"""
-
-    def is_head_move(self) -> bool:
-        """Checks whether the edge is a head-movement edge"""
-
-    def is_merge(self) -> bool:
-        """Checks whether the edge is a merge edge"""
+    def is_move(self) -> bool: ...
+    def is_head_move(self) -> bool: ...
+    def is_merge(self) -> bool: ...
 
 class SyntacticStructure:
-    """A parse tree for some string"""
+    """A parse tree for some string."""
 
     def __init__(self) -> None: ...
-    def log_prob(self) -> float:
-        """Return the log probability."""
-
-    def n_steps(self) -> int:
-        """Returns the number of steps in the derivation of this structure"""
-
-    def contains_lexical_entry(self, s: str) -> bool:
-        """Check if this structure contains a specific lexical entry (formatted as an MG entry, will raise an error if unparseable)"""
-
-    def contains_word(self, s: str | None) -> bool:
-        """Check if this structure contains a specific word."""
-
-    def prob(self) -> float:
-        """Return the probability of this syntactic structure."""
-
-    def latex(self) -> str:
-        """Return a LaTeX representation of this syntactic structure."""
-
-    def to_tree(self) -> ParseTree:
-        """Converts a syntactic structure into a graph structure"""
-
-    def max_memory_load(self) -> int:
-        """Gets the largest amount of movers at a single point"""
-
-    def tokens(self) -> npt.NDArray[np.uint]:
-        """Converts the string of this SyntacticStructure into a tokenized numpy array"""
-
+    def pronunciation(self) -> list[str]: ...
+    def log_prob(self) -> float: ...
+    def n_steps(self) -> int: ...
+    def contains_lexical_entry(self, s: str) -> bool: ...
+    def contains_word(self, s: str | None) -> bool: ...
+    def prob(self) -> float: ...
+    def latex(self) -> str: ...
+    def to_tree(self) -> ParseTree: ...
+    def max_memory_load(self) -> int: ...
+    def tokens(self) -> npt.NDArray[np.uint]: ...
+    @property
+    def meaning(self) -> list[str] | None: ...
     def __to_tree_inner(
         self,
     ) -> tuple[list[tuple[int, MGNode]], list[tuple[int, int, MGEdge]], int]: ...
 
 class Continuation:
-    """A continuation of a prefix string"""
+    """A continuation of a prefix string."""
 
     def __init__(self, word: str) -> None: ...
     @staticmethod
     def EOS() -> "Continuation": ...
-    def is_end_of_string(self) -> bool:
-        """Check if the continuation is a end of string marker"""
-
-    def is_word(self) -> bool:
-        """Check if the continuation is a word"""
-
-    def is_multi_word(self) -> bool:
-        """Check if the continuation is an affixed word"""
+    def is_end_of_string(self) -> bool: ...
+    def is_word(self) -> bool: ...
+    def is_multi_word(self) -> bool: ...
 
 class GrammarIterator:
     def __iter__(self) -> GrammarIterator: ...
     def __next__(self) -> SyntacticStructure: ...
 
 class Lexicon:
-    """A Minimalist Grammar Lexicon"""
+    """A Minimalist Grammar Lexicon."""
 
     def __init__(self, s: str) -> None: ...
     @staticmethod
-    def random_lexicon(lemmas: list[str]) -> "Lexicon":
-        """Generate a random lexicon from the list of lemmas"""
-
-    def mdl(self, n_phonemes: int) -> float:
-        """Returns the model description length of the lexicon"""
-
-    def is_semantic(self) -> bool:
-        """Returns whether the lexicon has semantic interpretations"""
-
+    def random_lexicon(lemmas: list[str]) -> "Lexicon": ...
+    def mdl(self, n_phonemes: int) -> float: ...
+    def is_semantic(self) -> bool: ...
     def continuations(
         self,
         prefix: str,
@@ -102,9 +67,7 @@ class Lexicon:
         max_steps: int | None = 64,
         n_beams: int | None = 256,
         max_strings: int | None = None,
-    ) -> set[Continuation]:
-        """Returns a set of all valid continuations from this prefix"""
-
+    ) -> set[Continuation]: ...
     def generate_unique_strings(
         self,
         category: str,
@@ -113,9 +76,7 @@ class Lexicon:
         max_steps: int | None = 64,
         n_beams: int | None = 256,
         max_strings: int | None = None,
-    ) -> list[tuple[list[str], float]]:
-        """Returns a list of all unique strings and their probabilities"""
-
+    ) -> list[tuple[list[str], float]]: ...
     def generate_grammar(
         self,
         category: str,
@@ -124,9 +85,7 @@ class Lexicon:
         max_steps: int | None = 64,
         n_beams: int | None = 256,
         max_strings: int | None = None,
-    ) -> GrammarIterator:
-        """Returns an iterator over all possible parses"""
-
+    ) -> GrammarIterator: ...
     def parse(
         self,
         s: str,
@@ -136,11 +95,7 @@ class Lexicon:
         max_steps: int | None = 64,
         n_beams: int | None = 256,
         max_strings: int | None = None,
-    ) -> list[SyntacticStructure]:
-        """Returns a list of all possible parses of that string.
-        The string, s, should be delimited by spaces for words and hyphens for multi-word expressions from head-movement
-        """
-
+    ) -> list[SyntacticStructure]: ...
     def parse_tokens(
         self,
         s: Sequence[int] | npt.NDArray[np.uint],
@@ -150,21 +105,13 @@ class Lexicon:
         max_steps: int | None = 64,
         n_beams: int | None = 256,
         max_strings: int | None = None,
-    ) -> list[SyntacticStructure]:
-        """Returns a list of all possible parses of a string represented by tokens."""
-
-    def tokens(self) -> dict[str, int]:
-        pass
-
-    def detokenize(self, s: Sequence[int] | npt.NDArray[np.uint]) -> list[str]:
-        pass
-
+    ) -> list[SyntacticStructure]: ...
+    def tokens(self) -> dict[str, int]: ...
+    def detokenize(self, s: Sequence[int] | npt.NDArray[np.uint]) -> list[str]: ...
     def detokenize_batch(
         self,
         s: Sequence[Sequence[int]] | list[npt.NDArray[np.uint]] | npt.NDArray[np.uint],
-    ) -> list[list[str]]:
-        pass
-
+    ) -> list[list[str]]: ...
     def token_continuations(
         self,
         x: npt.NDArray[np.uint],
@@ -173,5 +120,68 @@ class Lexicon:
         move_prob: float = 0.5,
         max_steps: int | None = 64,
         n_beams: int | None = 256,
-    ) -> npt.NDArray[np.bool]:
-        pass
+    ) -> npt.NDArray[np.bool]: ...
+
+class Actor:
+    name: str
+    properties: set[str]
+
+    def __init__(
+        self,
+        name: str,
+        properties: set[str] | None = None,
+    ) -> None: ...
+
+class Event:
+    agent: str | None
+    patient: str | None
+    properties: set[str]
+
+    def __init__(
+        self,
+        agent: str | None = None,
+        patient: str | None = None,
+        properties: set[str] | None = None,
+    ) -> None: ...
+
+class PossibleEvent:
+    has_agent: bool
+    has_patient: bool
+    is_reflexive: bool
+    name: str
+
+    def __init__(
+        self,
+        name: str,
+        has_agent: bool = True,
+        has_patient: bool = False,
+        is_reflexive: bool = True,
+    ) -> None: ...
+    def event_kind(self) -> Literal[
+        "Transitive",
+        "TransitiveNonReflexive",
+        "Unergative",
+        "Unaccusative",
+        "Avalent",
+    ]: ...
+
+class Scenario:
+    actors: list[Actor]
+    events: list[Event]
+    questions: list[str]
+
+    def __init__(self, s: str) -> None: ...
+    def evaluate(
+        self,
+        expression: str,
+        max_steps: int | None = 256,
+        timeout: datetime.timedelta | None = None,
+    ) -> bool | Actor | Event | set[Actor] | set[Event]: ...
+    @staticmethod
+    def all_scenarios(
+        actors: list[str], event_kinds: list[PossibleEvent], actor_properties: list[str]
+    ) -> ScenarioGenerator: ...
+
+class ScenarioGenerator:
+    def __iter__(self) -> ScenarioGenerator: ...
+    def __next__(self) -> Scenario: ...

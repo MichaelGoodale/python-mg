@@ -1,5 +1,5 @@
-Syntax tree utilities
-=====================
+Syntax
+======
 
 These are the classes that are useful for manipulating or plotting parse trees directly.
 

@@ -2,6 +2,7 @@ use minimalist_grammar_parser::parsing::rules::{TreeEdge, TreeNode};
 use pyo3::{exceptions::PyValueError, prelude::*};
 use std::fmt::Display;
 
+///A node on a tree.
 #[pyclass(name = "MGNode", str, eq, frozen)]
 #[derive(Debug, PartialEq, Eq)]
 pub struct PyMgNode(pub TreeNode<'static, String, String>);
@@ -59,6 +60,7 @@ impl PyMgNode {
     }
 }
 
+///A node representing the edge in a tree, whether in merging or movement.
 #[pyclass(name = "MGEdge", str, eq, frozen)]
 #[derive(Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub struct PyMgEdge(pub TreeEdge);
@@ -80,14 +82,32 @@ impl Display for PyMgEdge {
 
 #[pymethods]
 impl PyMgEdge {
+    ///Check if the edge is a movement edge.
+    ///
+    ///Returns
+    ///-------
+    ///bool
+    ///    Whether it's a movement edge.
     fn is_move(&self) -> bool {
         matches!(self.0, TreeEdge::Move)
     }
 
+    ///Check if the edge is a head-movement edge.
+    ///
+    ///Returns
+    ///-------
+    ///bool
+    ///    Whether it's a head-movement edge.
     fn is_head_move(&self) -> bool {
         matches!(self.0, TreeEdge::MoveHead)
     }
 
+    ///Check if the edge is a merge edge.
+    ///
+    ///Returns
+    ///-------
+    ///bool
+    ///    Whether it's a merge edge.
     fn is_merge(&self) -> bool {
         matches!(self.0, TreeEdge::Merge(_))
     }

@@ -15,6 +15,7 @@ It provides the tools necessary to generate strings from a Minimalist Grammar an
 
    lexicon
    syntax 
+   semantics
    metrics
 
 
