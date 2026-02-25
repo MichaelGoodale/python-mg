@@ -6,13 +6,7 @@
 name: Test and generate wheels
 
 on:
-  push:
-    branches:
-      - main
-      - master
-    tags:
-      - "*"
-  workflow_dispatch:
+  pull_request:
 
 permissions:
   contents: read
@@ -44,20 +38,6 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: _build/
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      pages: write
-    needs: docs
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
 
   linux:
     runs-on: ${{ matrix.platform.runner }}
