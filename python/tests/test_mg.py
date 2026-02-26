@@ -65,7 +65,7 @@ likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & Pati
 
     assert str(meaning) == phi
 
-    s = Scenario(
+    s = Scenario.from_str(
         "<John (nice, quick), Mary (sweet); {A: John, P: Mary (likes)}> lambda a x some_e(e, pe_likes(e), AgentOf(x, e)); lambda a x some_e(e, pe_likes(e), PatientOf(x, e))"
     )
     assert len(s.questions) == 2
@@ -82,7 +82,15 @@ likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & Pati
 
 
 def test_scenario() -> None:
-    s = Scenario("<John (nice, quick); {A: John (run)}>")
+    s = Scenario.from_str(
+        "<John (nice, quick); {A: John (run)}> lambda a x pa_nice(x); lambda a x pa_quick(x)"
+    )
+
+    assert s == Scenario(
+        actors=[Actor("John", properties={"nice", "quick"})],
+        events=[Event(agent="John", properties={"run"})],
+        questions=[Meaning("lambda a x pa_nice(x)"), "lambda a x pa_quick(x)"],
+    )
     assert s.actors == [Actor("John", properties={"nice", "quick"})]
     assert s.events == [Event(agent="John", properties={"run"})]
 
@@ -91,13 +99,13 @@ def test_scenario() -> None:
     ]
     assert len(scenarios) == 9
 
-    phi = Scenario("<John; {A: John (runs)}>").evaluate(
+    phi = Scenario.from_str("<John; {A: John (runs)}>").evaluate(
         "(lambda a x some_e(e, pe_runs(e), AgentOf(x, e)))(a_John)"
     )
     assert isinstance(phi, bool)
     assert phi
 
-    john = Scenario("<John (cool); {A: John (runs)}>").evaluate(
+    john = Scenario.from_str("<John (cool); {A: John (runs)}>").evaluate(
         "iota(x, some_e(e, pe_runs(e), AgentOf(x, e)))"
     )
     assert isinstance(john, Actor)

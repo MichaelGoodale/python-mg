@@ -171,9 +171,13 @@ class PossibleEvent:
 class Scenario:
     actors: list[Actor]
     events: list[Event]
-    questions: list[str]
+    questions: list[Meaning]
 
-    def __init__(self, s: str) -> None: ...
+    def __init__(
+        self, actors: list[Actor], events: list[Event], questions: list[Meaning | str]
+    ) -> None: ...
+    @staticmethod
+    def from_str(s: str) -> Scenario: ...
     def evaluate(
         self,
         expression: str | Meaning,

@@ -148,8 +148,19 @@ impl PyScenario {
 
 #[pymethods]
 impl PyScenario {
-    #[new]
-    fn new(s: String) -> PyResult<Self> {
+    ///Parse a scenario from a string description:
+    ///
+    ///Parameters
+    ///----------
+    ///s : str
+    ///    The description of the scenario.
+    ///
+    ///Raises
+    ///------
+    ///ValueError
+    ///    If the expression is not a valid description of a scenario
+    #[staticmethod]
+    fn from_str(s: String) -> PyResult<Self> {
         let scenario =
             Scenario::parse(s.as_str()).map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(scenario.into())

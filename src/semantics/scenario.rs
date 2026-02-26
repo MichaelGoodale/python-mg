@@ -11,6 +11,13 @@ use super::*;
 ///events: list[str]
 ///    The questions in a scenario. (Will raise a `ValueError` if set with a `str` which is not a
 ///    valid Language of Thought expression)
+///questions: list[str | Meaning]
+///    Any questions to be asked in this scenario. (Must be LOT expressions)
+///
+///Raises
+///------
+///ValueError
+///    If the questions are strings which are not proper LOT expressions.
 #[pyclass(name = "Scenario", str, eq, from_py_object)]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PyScenario {
@@ -23,7 +30,7 @@ pub struct PyScenario {
 
     ///A list of questions to be asked in the scenario
     #[pyo3(get)]
-    questions: Vec<String>,
+    questions: Vec<PyMeaning>,
 }
 
 impl From<Scenario<'_>> for PyScenario {
@@ -68,7 +75,16 @@ impl From<Scenario<'_>> for PyScenario {
             })
             .collect();
 
-        let questions = value.questions().iter().map(|x| x.to_string()).collect();
+        let questions = value
+            .questions()
+            .iter()
+            .map(|x| {
+                let s = x.to_string();
+                PyMeaning::new(s).unwrap_or_else(|x| {
+                    panic!("Internal library failure in parsing string:\n\t{x}",)
+                })
+            })
+            .collect();
 
         PyScenario {
             actors,
@@ -80,13 +96,28 @@ impl From<Scenario<'_>> for PyScenario {
 
 #[pymethods]
 impl PyScenario {
-    #[setter]
-    fn set_questions(&mut self, questions: Vec<String>) -> PyResult<()> {
-        for q in &questions {
-            let _ = RootedLambdaPool::parse(q).map_err(|e| PyValueError::new_err(e.to_string()))?;
-        }
+    #[new]
+    fn new(
+        actors: Vec<PyActor>,
+        events: Vec<PyEvent>,
+        questions: Vec<MeaningOrString>,
+    ) -> PyResult<Self> {
+        Ok(Self {
+            actors,
+            events,
+            questions: questions
+                .into_iter()
+                .map(MeaningOrString::into_meaning)
+                .collect::<PyResult<_>>()?,
+        })
+    }
 
-        self.questions = questions;
+    #[setter]
+    fn set_questions(&mut self, questions: Vec<MeaningOrString>) -> PyResult<()> {
+        self.questions = questions
+            .into_iter()
+            .map(MeaningOrString::into_meaning)
+            .collect::<Result<_, _>>()?;
         Ok(())
     }
 }
