@@ -1,6 +1,9 @@
 use std::fmt::Display;
 
-use crate::graphing::{PyMgEdge, PyMgNode};
+use crate::{
+    graphing::{PyMgEdge, PyMgNode},
+    semantics::PyMeaning,
+};
 
 use super::PyLexicon;
 use logprob::LogProb;
@@ -15,7 +18,7 @@ pub struct PySyntacticStructure {
     prob: LogProb<f64>,
     string: Vec<PhonContent<String>>,
     rules: RulePool,
-    meaning: Option<Vec<String>>,
+    meaning: Option<Vec<PyMeaning>>,
     lex: Py<PyLexicon>,
 }
 
@@ -48,12 +51,16 @@ impl PySyntacticStructure {
         string: Vec<PhonContent<String>>,
         rules: RulePool,
     ) -> PySyntacticStructure {
+        let py_lex = lex.get();
         PySyntacticStructure {
             prob,
-            meaning: lex.get().semantics().map(|lex| {
+            meaning: py_lex.semantics().map(|lexicon| {
                 rules
-                    .to_interpretation(lex)
-                    .map(|(a, _)| a.to_string())
+                    .to_interpretation(lexicon)
+                    .map(|(expr, _)| {
+                        let s = py_lex.backing_string();
+                        unsafe { PyMeaning::from_other(expr, s) }
+                    })
                     .collect()
             }),
             rules,
@@ -68,12 +75,16 @@ impl PySyntacticStructure {
         string: &[PhonContent<&str>],
         rules: RulePool,
     ) -> PySyntacticStructure {
+        let py_lex = lexicon.get();
         PySyntacticStructure {
             prob,
-            meaning: lexicon.get().semantics().map(|lex| {
+            meaning: py_lex.semantics().map(|lexicon| {
                 rules
-                    .to_interpretation(lex)
-                    .map(|(a, _)| a.to_string())
+                    .to_interpretation(lexicon)
+                    .map(|(expr, _)| {
+                        let s = py_lex.backing_string();
+                        unsafe { PyMeaning::from_other(expr, s) }
+                    })
                     .collect()
             }),
             rules,
@@ -103,9 +114,15 @@ impl PySyntacticStructure {
 impl PySyntacticStructure {
     ///Returns the interpretation of this SyntacticStructure, provided that its associated Lexicon
     ///has semantics
+    ///
+    ///Returns
+    ///-------
+    ///Meaning or none
+    ///    The language of thought expression associated with this syntactic structure (if it
+    ///    exists)
     #[getter]
-    fn meaning(&self) -> &Option<Vec<String>> {
-        &self.meaning
+    fn meaning(&self) -> Option<Vec<PyMeaning>> {
+        self.meaning.clone()
     }
 
     ///The pronunciation of this SyntacticStructure.

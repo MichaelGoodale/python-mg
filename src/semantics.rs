@@ -7,7 +7,7 @@ use std::{
 };
 
 use itertools::Itertools;
-use pyo3::{IntoPyObjectExt, exceptions::PyValueError, prelude::*};
+use pyo3::{exceptions::PyValueError, prelude::*};
 use simple_semantics::{
     Entity, EventType, LanguageResult, PossibleEvent, Scenario, ScenarioIterator, ThetaRoles,
     lambda::RootedLambdaPool,
@@ -19,31 +19,108 @@ use lot_types::{PyActor, PyEvent, convert_to_py_actor, convert_to_py_event};
 pub mod scenario;
 use scenario::PyScenario;
 
-struct LanguageResultWrapper<'a>(LanguageResult<'a>, Scenario<'a>);
+/// A language of thought expression that has been parsed.
+///
+/// You can always use a string instead of this class, but
+/// this class allows you to save time on parsing the LOT expression if you use it a lot.
+///
+/// Parameters
+/// ----------
+/// s : str
+///     A Language of Thought Expression
+#[pyclass(name = "Meaning", eq, from_py_object, frozen, str)]
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct PyMeaning {
+    expr: RootedLambdaPool<'static, Expr<'static>>,
+    string: Arc<String>,
+}
 
-impl<'py> IntoPyObject<'py> for LanguageResultWrapper<'_> {
-    type Target = PyAny;
+impl PyMeaning {
+    fn expr<'a>(&'a self) -> &'a RootedLambdaPool<'a, Expr<'a>> {
+        &self.expr
+    }
 
-    type Output = Bound<'py, Self::Target>;
+    pub unsafe fn from_other(expr: RootedLambdaPool<'_, Expr<'_>>, s: &Arc<String>) -> Self {
+        let expr: RootedLambdaPool<'static, Expr<'static>> = unsafe { std::mem::transmute(expr) };
 
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match self.0 {
-            LanguageResult::Bool(bool) => bool.into_bound_py_any(py),
-            LanguageResult::Actor(name) => convert_to_py_actor(name, &self.1).into_bound_py_any(py),
-            LanguageResult::Event(e_i) => convert_to_py_event(e_i, &self.1)?.into_bound_py_any(py),
-            LanguageResult::ActorSet(items) => items
-                .into_iter()
-                .map(|name| convert_to_py_actor(name, &self.1))
-                .collect::<HashSet<_>>()
-                .into_bound_py_any(py),
-            LanguageResult::EventSet(items) => items
-                .into_iter()
-                .map(|e_i| convert_to_py_event(e_i, &self.1))
-                .collect::<Result<HashSet<_>, _>>()?
-                .into_bound_py_any(py),
+        Self {
+            expr,
+            string: s.clone(),
         }
+    }
+}
+
+impl Display for PyMeaning {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.expr)
+    }
+}
+
+#[pymethods]
+impl PyMeaning {
+    #[new]
+    fn new(expr: String) -> PyResult<Self> {
+        let string = Arc::new(expr);
+        let s: &'static str = unsafe { std::mem::transmute(string.as_str()) };
+        let expr = RootedLambdaPool::parse(s).map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+        Ok(Self { expr, string })
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Meaning({self})")
+    }
+}
+
+#[derive(FromPyObject)]
+enum MeaningOrString {
+    #[pyo3(transparent, annotation = "Meaning")]
+    Meaning(PyMeaning),
+    #[pyo3(transparent, annotation = "str")]
+    String(String),
+}
+
+impl MeaningOrString {
+    fn into_meaning(self) -> PyResult<PyMeaning> {
+        match self {
+            MeaningOrString::Meaning(meaning) => Ok(meaning),
+            MeaningOrString::String(s) => PyMeaning::new(s),
+        }
+    }
+}
+
+#[derive(IntoPyObject)]
+enum OwnedLanguageResult {
+    Bool(bool),
+    Actor(PyActor),
+    Event(PyEvent),
+    ActorSet(HashSet<PyActor>),
+    EventSet(HashSet<PyEvent>),
+}
+
+impl OwnedLanguageResult {
+    fn new(language_result: LanguageResult, scenario: &Scenario) -> PyResult<Self> {
+        Ok(match language_result {
+            LanguageResult::Bool(bool) => OwnedLanguageResult::Bool(bool),
+            LanguageResult::Actor(name) => {
+                OwnedLanguageResult::Actor(convert_to_py_actor(name, scenario))
+            }
+            LanguageResult::Event(e_i) => {
+                OwnedLanguageResult::Event(convert_to_py_event(e_i, scenario)?)
+            }
+            LanguageResult::ActorSet(items) => OwnedLanguageResult::ActorSet(
+                items
+                    .into_iter()
+                    .map(|name| convert_to_py_actor(name, scenario))
+                    .collect(),
+            ),
+            LanguageResult::EventSet(items) => OwnedLanguageResult::EventSet(
+                items
+                    .into_iter()
+                    .map(|e_i| convert_to_py_event(e_i, scenario))
+                    .collect::<Result<HashSet<_>, _>>()?,
+            ),
+        })
     }
 }
 
@@ -52,7 +129,7 @@ impl PyScenario {
         &'a self,
         mut expr: RootedLambdaPool<'a, Expr<'a>>,
         config: Option<ExecutionConfig>,
-    ) -> PyResult<LanguageResultWrapper<'a>> {
+    ) -> PyResult<OwnedLanguageResult> {
         let scenario = self.as_scenario();
         expr.reduce()
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
@@ -65,7 +142,7 @@ impl PyScenario {
         let language_result = pool
             .run(&scenario, config)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
-        Ok(LanguageResultWrapper(language_result, scenario))
+        OwnedLanguageResult::new(language_result, &scenario)
     }
 }
 
@@ -88,7 +165,7 @@ impl PyScenario {
     ///
     ///Parameters
     ///----------
-    ///expression : str
+    ///expression : Meaning | str
     ///    The expression in the language of thought to execute.
     ///max_steps : int or None, optional
     ///    The number of steps in the virtual machine to execute before giving up.
@@ -103,18 +180,16 @@ impl PyScenario {
     ///Raises
     ///------
     ///ValueError
-    ///    If the expression is incorrectly formatted or if there is a presupposition error.
+    ///    If the expression is a string which is incorrectly formatted or if there is a presupposition error.
     #[pyo3(signature = (expression, max_steps=64, timeout=None))]
-    fn evaluate<'a>(
-        &'a self,
-        expression: &'a str,
+    fn evaluate(
+        &self,
+        expression: MeaningOrString,
         max_steps: Option<usize>,
         timeout: Option<Duration>,
-    ) -> PyResult<LanguageResultWrapper<'a>> {
-        let expr = RootedLambdaPool::parse(expression)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+    ) -> PyResult<OwnedLanguageResult> {
         self.execute(
-            expr,
+            expression.into_meaning()?.expr().clone(),
             Some(ExecutionConfig::new(max_steps, timeout).allow_empty_quantification()),
         )
     }
@@ -190,20 +265,16 @@ impl PyScenario {
 ///     Whether the event has a patient participant. Default is ``False``.
 /// is_reflexive : bool, optional
 ///     Whether the event allows reflexive construal. Default is ``True``.
-#[pyclass(name = "PossibleEvent", eq, from_py_object)]
+#[pyclass(name = "PossibleEvent", eq, get_all, set_all, from_py_object)]
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct PyPossibleEvent {
     ///Whether the event takes an agent
-    #[pyo3(get, set)]
     pub has_agent: bool,
     ///Whether the event takes a patient
-    #[pyo3(get, set)]
     pub has_patient: bool,
     ///Whether the event can have the same agent and patient
-    #[pyo3(get, set)]
     pub is_reflexive: bool,
     ///The name of this kind of event (e.g. `running` could be a unaccusative event)
-    #[pyo3(get, set)]
     pub name: String,
 }
 

@@ -1,3 +1,5 @@
+use simple_semantics::Event;
+
 use super::*;
 
 pub(super) fn convert_to_py_actor(name: &str, scenario: &Scenario<'_>) -> PyActor {
@@ -17,7 +19,7 @@ pub(super) fn convert_to_py_actor(name: &str, scenario: &Scenario<'_>) -> PyActo
     }
 }
 
-pub(super) fn convert_to_py_event(e_i: u8, scenario: &Scenario<'_>) -> Result<PyEvent, PyErr> {
+pub(super) fn convert_to_py_event(e_i: Event, scenario: &Scenario<'_>) -> Result<PyEvent, PyErr> {
     let e = scenario
         .thematic_relations()
         .get(e_i as usize)

@@ -3,7 +3,7 @@
 import pickle
 
 from python_mg import Lexicon, Continuation
-from python_mg.semantics import Scenario, Actor, Event
+from python_mg.semantics import Meaning, Scenario, Actor, Event
 from python_mg.syntax import Trace, Mover
 
 
@@ -60,10 +60,15 @@ likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & Pati
     assert len(s) == 1
     parse = s[0]
     assert parse.meaning is not None
-    assert parse.meaning == [
+    meaning = parse.meaning[0]
+    assert (
+        str(meaning)
+        == "some_e(x, pe_likes(x), AgentOf(a_John, x) & PatientOf(a_Mary, x))"
+    )
+
+    alt_meaning = Meaning(
         "some_e(x, pe_likes(x), AgentOf(a_John, x) & PatientOf(a_Mary, x))"
-    ]
-    meaning: str = parse.meaning[0]
+    )
 
     s = Scenario(
         "<John (nice, quick), Mary (sweet); {A: John, P: Mary (likes)}> lambda a x some_e(e, pe_likes(e), AgentOf(x, e)); lambda a x some_e(e, pe_likes(e), PatientOf(x, e))"

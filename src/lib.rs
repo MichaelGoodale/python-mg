@@ -23,7 +23,7 @@ use syntax::PySyntacticStructure;
 
 use crate::{
     semantics::{
-        PyPossibleEvent, PyScenarioGenerator,
+        PyMeaning, PyPossibleEvent, PyScenarioGenerator,
         lot_types::{PyActor, PyEvent},
         scenario::PyScenario,
     },
@@ -177,6 +177,10 @@ impl Display for PyLexicon {
 impl PyLexicon {
     fn semantics<'a>(&'a self) -> Option<&'a SemanticLexicon<'a, &'a str, &'a str>> {
         self.lexicon.semantic_lexicon()
+    }
+
+    fn backing_string(&self) -> &Arc<String> {
+        &self.lexicon.string
     }
 }
 
@@ -695,5 +699,6 @@ fn python_mg(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyActor>()?;
     m.add_class::<PyEvent>()?;
     m.add_class::<PyPossibleEvent>()?;
+    m.add_class::<PyMeaning>()?;
     Ok(())
 }
