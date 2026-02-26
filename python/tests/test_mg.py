@@ -61,14 +61,9 @@ likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & Pati
     parse = s[0]
     assert parse.meaning is not None
     meaning = parse.meaning[0]
-    assert (
-        str(meaning)
-        == "some_e(x, pe_likes(x), AgentOf(a_John, x) & PatientOf(a_Mary, x))"
-    )
+    phi = "some_e(x, pe_likes(x), AgentOf(a_John, x) & PatientOf(a_Mary, x))"
 
-    alt_meaning = Meaning(
-        "some_e(x, pe_likes(x), AgentOf(a_John, x) & PatientOf(a_Mary, x))"
-    )
+    assert str(meaning) == phi
 
     s = Scenario(
         "<John (nice, quick), Mary (sweet); {A: John, P: Mary (likes)}> lambda a x some_e(e, pe_likes(e), AgentOf(x, e)); lambda a x some_e(e, pe_likes(e), PatientOf(x, e))"
@@ -76,6 +71,9 @@ likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & Pati
     assert len(s.questions) == 2
 
     assert s.evaluate(meaning)
+    assert s.evaluate(Meaning(phi))
+    assert s.evaluate(phi)
+
     answers = [
         s.evaluate(f"({q})(a_{name})") for q, name in zip(s.questions, ["John", "Mary"])
     ]
