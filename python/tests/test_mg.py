@@ -82,9 +82,8 @@ likes::d= =d v::lambda a x lambda a y some_e(e, pe_likes(e), AgentOf(y,e) & Pati
 
 
 def test_scenario() -> None:
-    s = Scenario.from_str(
-        "<John (nice, quick); {A: John (run)}> lambda a x pa_nice(x); lambda a x pa_quick(x)"
-    )
+    scenario_str = "<John (nice, quick); {A: John (run)}> lambda a x pa_nice(x); lambda a x pa_quick(x)"
+    s = Scenario.from_str(scenario_str)
 
     assert s == Scenario(
         actors=[Actor("John", properties={"nice", "quick"})],
@@ -93,6 +92,7 @@ def test_scenario() -> None:
     )
     assert s.actors == [Actor("John", properties={"nice", "quick"})]
     assert s.events == [Event(agent="John", properties={"run"})]
+    assert str(s) == scenario_str
 
     scenarios: list[Scenario] = [
         x for x in Scenario.all_scenarios(["John", "Mary"], [], ["kind"])

@@ -151,6 +151,9 @@ impl PyScenario {
             }
         }
 
-        Scenario::new(actors, thematic_relations, properties)
+        let mut s = Scenario::new(actors, thematic_relations, properties);
+        s.question_mut()
+            .extend(self.questions.iter().map(|x| x.expr().clone()));
+        s
     }
 }
