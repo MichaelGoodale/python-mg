@@ -32,6 +32,25 @@ def test_memory_load() -> None:
     assert parse.max_memory_load() == 1
 
 
+def test_lambdas() -> None:
+    alpha = Meaning("lambda a x pa_nice(x) & pa_friendly(x)")
+    beta = Meaning("Johnny#a")
+    phi = Meaning("(lambda a x pa_nice(x) & pa_friendly(x))(Johnny#a)")
+    assert alpha.apply(beta, reduce=False) == phi
+
+    psi = Meaning("pa_nice(Johnny#a) & pa_friendly(Johnny#a)")
+    assert psi == phi.reduce()
+    assert psi == alpha.apply(beta)
+
+    x = psi.bind_free_variable("Johnny", "a_John")
+    assert x == Meaning("pa_nice(a_John) & pa_friendly(a_John)")
+
+    phi = Meaning("(lambda a x pa_nice(x) & pa_friendly(x))(34#a)").bind_free_variable(
+        34, "a_John"
+    )
+    assert phi == Meaning("pa_nice(a_John) & pa_friendly(a_John)")
+
+
 def test_generation() -> None:
     grammar = """John::d::a_John
 runs::=d v::lambda a x some_e(e, pe_run(e), AgentOf(x,e))

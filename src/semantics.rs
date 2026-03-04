@@ -10,7 +10,7 @@ use itertools::Itertools;
 use pyo3::{exceptions::PyValueError, prelude::*};
 use simple_semantics::{
     Entity, EventType, LanguageResult, PossibleEvent, Scenario, ScenarioIterator, ThetaRoles,
-    lambda::RootedLambdaPool,
+    lambda::{FreeVar, RootedLambdaPool},
     language::{ExecutionConfig, Expr},
 };
 
@@ -28,24 +28,32 @@ use scenario::PyScenario;
 /// ----------
 /// s : str
 ///     A Language of Thought Expression
-#[pyclass(name = "Meaning", eq, from_py_object, frozen, str)]
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[pyclass(name = "Meaning", eq, from_py_object, str, frozen)]
+#[derive(Debug, Clone)]
 pub struct PyMeaning {
     expr: RootedLambdaPool<'static, Expr<'static>>,
-    string: Arc<String>,
+    strings: Vec<Arc<String>>,
 }
+
+impl PartialEq for PyMeaning {
+    fn eq(&self, other: &Self) -> bool {
+        self.expr == other.expr
+    }
+}
+
+impl Eq for PyMeaning {}
 
 impl PyMeaning {
     fn expr<'a>(&'a self) -> &'a RootedLambdaPool<'a, Expr<'a>> {
         &self.expr
     }
 
-    pub unsafe fn from_other(expr: RootedLambdaPool<'_, Expr<'_>>, s: &Arc<String>) -> Self {
+    pub unsafe fn from_other(expr: RootedLambdaPool<'_, Expr<'_>>, s: Vec<Arc<String>>) -> Self {
         let expr: RootedLambdaPool<'static, Expr<'static>> = unsafe { std::mem::transmute(expr) };
 
         Self {
             expr,
-            string: s.clone(),
+            strings: s.clone(),
         }
     }
 }
@@ -56,6 +64,14 @@ impl Display for PyMeaning {
     }
 }
 
+#[derive(FromPyObject)]
+enum IntOrStr {
+    #[pyo3(transparent, annotation = "int")]
+    Int(usize),
+    #[pyo3(transparent, annotation = "str")]
+    Str(String),
+}
+
 #[pymethods]
 impl PyMeaning {
     #[new]
@@ -64,7 +80,159 @@ impl PyMeaning {
         let s: &'static str = unsafe { std::mem::transmute(string.as_str()) };
         let expr = RootedLambdaPool::parse(s).map_err(|e| PyValueError::new_err(e.to_string()))?;
 
-        Ok(Self { expr, string })
+        Ok(Self {
+            expr,
+            strings: vec![string],
+        })
+    }
+
+    ///Binds a free variable
+    ///
+    ///
+    ///Examples
+    ///--------
+    ///
+    ///Binding a free variable with a string.
+    ///
+    ///.. code-block:: python
+    ///
+    ///    psi = Meaning("pa_nice(Johnny#a) & pa_friendly(Johnny#a)") # "Johnny#a" is a free variable.
+    ///    x = psi.bind_free_variable("Johnny", "a_John")
+    ///    assert x == Meaning("pa_nice(a_John) & pa_friendly(a_John)")
+    ///
+    ///Binding a free variable with an integer.
+    ///
+    ///.. code-block:: python
+    ///
+    ///    psi = Meaning("pa_nice(343#a) & pa_friendly(343#a)") # "343#a" is an integer free variable.
+    ///    x = psi.bind_free_variable(343, "a_John")
+    ///    assert x == Meaning("pa_nice(a_John) & pa_friendly(a_John)")
+    ///
+    ///Parameters
+    ///----------
+    ///free_var : str | int
+    ///    The name (or int) of the free variables
+    ///value : Meaning | str
+    ///    The value of the free variable.
+    ///reduce : bool
+    ///    Whether to reduce immediately after application or not (true by default)
+    ///
+    ///Returns
+    ///-------
+    ///Meaning
+    ///    The resulting meaning after binding the free variable.
+    ///
+    ///Raises
+    ///------
+    ///ValueError
+    ///    If the free variable's expression is of the wrong type if the meaning is an
+    ///    unparseable string.
+    #[pyo3(signature = (free_var, value, reduce=true))]
+    fn bind_free_variable(
+        &self,
+        free_var: IntOrStr,
+        value: MeaningOrString,
+        reduce: bool,
+    ) -> PyResult<PyMeaning> {
+        let mut phi = self.clone();
+        let PyMeaning { expr: psi, strings } = value.into_meaning()?;
+        let fvar = match free_var {
+            IntOrStr::Int(x) => FreeVar::Anonymous(x),
+            IntOrStr::Str(string) => {
+                let string = Arc::new(string);
+                let s: &'static str = unsafe { std::mem::transmute(string.as_str()) };
+                phi.strings.push(string);
+                FreeVar::Named(s)
+            }
+        };
+
+        phi.strings.extend(strings);
+        phi.expr
+            .bind_free_variable(fvar, psi)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        if reduce {
+            phi.expr
+                .reduce()
+                .map_err(|e| PyValueError::new_err(e.to_string()))?;
+            phi.expr.cleanup();
+        }
+
+        Ok(phi)
+    }
+
+    ///Applies psi to self.
+    ///
+    ///
+    ///Examples
+    ///--------
+    ///
+    ///Applying an argument to a function.
+    ///
+    ///.. code-block:: python
+    ///
+    ///    alpha = Meaning("lambda a x pa_nice(x) & pa_friendly(x)")
+    ///    beta = Meaning("a_John")
+    ///    assert Meaning("pa_nice(a_John) & pa_friendly(a_John)") == alpha.apply(beta)
+    ///
+    ///Parameters
+    ///----------
+    ///psi : Meaning | str
+    ///    The argument that is to be applied.
+    ///reduce : bool
+    ///    Whether to reduce immediately after application or not (true by default)
+    ///
+    ///Returns
+    ///-------
+    ///Meaning
+    ///    The resulting meaning after applying the argument
+    ///
+    ///Raises
+    ///------
+    ///ValueError
+    ///    If the expression is of the wrong type or if the meaning is an
+    ///    unparseable string.
+    #[pyo3(signature = (psi, reduce=true))]
+    fn apply(&self, psi: MeaningOrString, reduce: bool) -> PyResult<Option<PyMeaning>> {
+        let PyMeaning {
+            expr: psi,
+            strings: psi_strings,
+        } = psi.into_meaning()?;
+        let PyMeaning {
+            expr: phi,
+            mut strings,
+        } = self.clone();
+        strings.extend(psi_strings);
+        if let Some(mut phi) = phi.apply(psi) {
+            if reduce {
+                phi.reduce()
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?;
+                phi.cleanup();
+            }
+            //strings may grow monotonically but its unlikely to ever actually be an issue!
+            Ok(Some(PyMeaning { expr: phi, strings }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    ///Reduces an expression.
+    ///
+    ///Returns
+    ///-------
+    ///Meaning
+    ///    The resulting meaning after reduction.
+    ///
+    ///Raises
+    ///------
+    ///ValueError
+    ///    If there is an error in how the meaning is constructed leading the reduction to fail.
+    fn reduce(&self) -> PyResult<Self> {
+        let mut phi = self.clone();
+        phi.expr
+            .reduce()
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        phi.expr.cleanup();
+        Ok(phi)
     }
 
     fn __repr__(&self) -> String {
@@ -155,6 +323,10 @@ impl PyScenario {
     ///s : str
     ///    The description of the scenario.
     ///
+    ///Returns
+    ///-------
+    ///Scenario
+    ///    The scenario described by the string.
     ///Raises
     ///------
     ///ValueError
@@ -191,7 +363,10 @@ impl PyScenario {
     ///Raises
     ///------
     ///ValueError
-    ///    If the expression is a string which is incorrectly formatted or if there is a presupposition error.
+    ///    If the expression is a string which is incorrectly formatted.
+    ///    If the expression's lambda terms cannot be fully reduced.
+    ///    If there is a presupposition error.
+    ///
     #[pyo3(signature = (expression, max_steps=64, timeout=None))]
     fn evaluate(
         &self,
