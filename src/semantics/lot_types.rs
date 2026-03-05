@@ -1,3 +1,4 @@
+use pyo3::prelude::*;
 use simple_semantics::Event;
 
 use super::*;
@@ -66,7 +67,13 @@ pub(super) fn convert_to_py_event(e_i: Event, scenario: &Scenario<'_>) -> Result
 ///    actor.name = "Alice"
 ///    actor.properties = {"nice", "friendly"}
 ///
-#[pyclass(name = "Actor", eq, str, from_py_object)]
+#[pyclass(
+    name = "Actor",
+    module = "python_mg.semantics",
+    eq,
+    str,
+    from_py_object
+)]
 #[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct PyActor {
     /// The name of the actor
@@ -91,6 +98,10 @@ impl PyActor {
 
     fn __repr__(&self) -> String {
         format!("Actor({self})")
+    }
+
+    fn __getnewargs__(&self) -> (&str, &BTreeSet<String>) {
+        (&self.name, &self.properties)
     }
 }
 
@@ -127,7 +138,13 @@ impl Display for PyActor {
 ///
 ///    running = Actor(agent="John", properties={"run", "quickly"})
 ///
-#[pyclass(name = "Event", eq, str, from_py_object)]
+#[pyclass(
+    name = "Event",
+    module = "python_mg.semantics",
+    eq,
+    str,
+    from_py_object
+)]
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct PyEvent {
     ///The agent of the event.
@@ -162,6 +179,14 @@ impl PyEvent {
 
     fn __repr__(&self) -> String {
         format!("Event({self})")
+    }
+
+    fn __getnewargs__(&self) -> (Option<&str>, Option<&str>, &BTreeSet<String>) {
+        (
+            self.agent.as_deref(),
+            self.patient.as_deref(),
+            &self.properties,
+        )
     }
 }
 

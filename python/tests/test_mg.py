@@ -3,7 +3,7 @@
 import pickle
 
 from python_mg import Lexicon, Continuation
-from python_mg.semantics import Meaning, Scenario, Actor, Event
+from python_mg.semantics import Meaning, PossibleEvent, Scenario, Actor, Event
 from python_mg.syntax import Trace, Mover
 
 
@@ -17,10 +17,26 @@ def test_lexicon() -> None:
     )
 
 
-def test_pickling() -> None:
-    x = Lexicon("a::b= a\nb::b")
+def pickle_assert(
+    x,  # noqa: ANN001  # pyright: ignore[reportUnknownParameterType, reportMissingParameterType]
+) -> None:
     x_pickle = pickle.dumps(x)
     assert pickle.loads(x_pickle) == x
+
+
+def test_pickling() -> None:
+    pickle_assert(Lexicon("a::b= a\nb::b"))
+    pickle_assert(Actor("John", {"a", "b"}))
+
+    pickle_assert(Actor("John", properties={"a", "b"}))
+    pickle_assert(Event(agent="John", patient="Mary", properties={"likes"}))
+
+    pickle_assert(
+        Scenario.from_str(
+            "<John (nice, quick), Mary (sweet); {A: John, P: Mary (likes)}> lambda a x some_e(e, pe_likes(e), AgentOf(x, e)); lambda a x some_e(e, pe_likes(e), PatientOf(x, e))"
+        )
+    )
+    pickle_assert(PossibleEvent("running", has_agent=True, has_patient=False))
 
 
 def test_memory_load() -> None:

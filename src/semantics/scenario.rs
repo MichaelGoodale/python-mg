@@ -18,7 +18,13 @@ use super::*;
 ///------
 ///ValueError
 ///    If the questions are strings which are not proper LOT expressions.
-#[pyclass(name = "Scenario", str, eq, from_py_object)]
+#[pyclass(
+    name = "Scenario",
+    module = "python_mg.semantics",
+    str,
+    eq,
+    from_py_object
+)]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PyScenario {
     ///A list of Actors in the scenario
@@ -119,6 +125,14 @@ impl PyScenario {
             .map(MeaningOrString::into_meaning)
             .collect::<Result<_, _>>()?;
         Ok(())
+    }
+
+    fn __getnewargs__(&self) -> (Vec<PyActor>, Vec<PyEvent>, Vec<PyMeaning>) {
+        (
+            self.actors.clone(),
+            self.events.clone(),
+            self.questions.clone(),
+        )
     }
 }
 

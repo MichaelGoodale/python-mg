@@ -28,7 +28,14 @@ use scenario::PyScenario;
 /// ----------
 /// s : str
 ///     A Language of Thought Expression
-#[pyclass(name = "Meaning", eq, from_py_object, str, frozen)]
+#[pyclass(
+    name = "Meaning",
+    module = "python_mg.semantics",
+    eq,
+    from_py_object,
+    str,
+    frozen
+)]
 #[derive(Debug, Clone)]
 pub struct PyMeaning {
     expr: RootedLambdaPool<'static, Expr<'static>>,
@@ -84,6 +91,10 @@ impl PyMeaning {
             expr,
             strings: vec![string],
         })
+    }
+
+    fn __getnewargs__(&self) -> (String,) {
+        (self.expr.to_string(),)
     }
 
     ///Binds a free variable
@@ -451,7 +462,14 @@ impl PyScenario {
 ///     Whether the event has a patient participant. Default is ``False``.
 /// is_reflexive : bool, optional
 ///     Whether the event allows reflexive construal. Default is ``True``.
-#[pyclass(name = "PossibleEvent", eq, get_all, set_all, from_py_object)]
+#[pyclass(
+    name = "PossibleEvent",
+    module = "python_mg.semantics",
+    eq,
+    get_all,
+    set_all,
+    from_py_object
+)]
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct PyPossibleEvent {
     ///Whether the event takes an agent
@@ -490,6 +508,15 @@ impl PyPossibleEvent {
             (false, true) => "Unaccusative",
             (false, false) => "Avalent",
         }
+    }
+
+    fn __getnewargs__(&self) -> (&str, bool, bool, bool) {
+        (
+            &self.name,
+            self.has_agent,
+            self.has_patient,
+            self.is_reflexive,
+        )
     }
 }
 
