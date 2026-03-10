@@ -191,7 +191,12 @@ class Scenario:
     ) -> bool | Actor | Event | set[Actor] | set[Event]: ...
     @staticmethod
     def all_scenarios(
-        actors: list[str], event_kinds: list[PossibleEvent], actor_properties: list[str]
+        actors: list[str],
+        event_kinds: list[PossibleEvent],
+        actor_properties: list[str],
+        max_number_of_events: None | int = None,
+        max_number_of_actors: None | int = None,
+        max_number_of_actor_properties: None | int = None,
     ) -> ScenarioGenerator: ...
 
 class ScenarioGenerator:

@@ -400,15 +400,25 @@ impl PyScenario {
     ///    The actors who may or may not be present.
     ///event_kinds : list[``PossibleEvent``]
     ///    The possible kinds of events
+    ///max_number_of_events : int | None
+    ///    The maximum number of events in a given scenario (default is None, so unbounded)
+    ///max_number_of_actors : int | None
+    ///    The maximum number of actors in a given scenario (default is None, so unbounded)
+    ///max_number_of_actor_properties : int | None
+    ///    The maximum number of properties an actor can have in a given scenario (default is None, so unbounded)
     ///
     ///Returns
     ///-------
     ///ScenarioGenerator
     #[staticmethod]
+    #[pyo3(signature = (actors, event_kinds, actor_properties, max_number_of_events=None, max_number_of_actors=None, max_number_of_actor_properties=None))]
     fn all_scenarios(
         actors: Vec<String>,
         event_kinds: Vec<PyPossibleEvent>,
         actor_properties: Vec<String>,
+        max_number_of_events: Option<usize>,
+        max_number_of_actors: Option<usize>,
+        max_number_of_actor_properties: Option<usize>,
     ) -> PyScenarioGenerator {
         let parameter_holder = Arc::new(ParameterHolder {
             actors,
@@ -444,7 +454,14 @@ impl PyScenario {
             .collect::<Vec<_>>();
 
         PyScenarioGenerator {
-            generator: Scenario::all_scenarios(&actors, &event_kinds, &properties),
+            generator: Scenario::all_scenarios(
+                &actors,
+                &event_kinds,
+                &properties,
+                max_number_of_events,
+                max_number_of_actors,
+                max_number_of_actor_properties,
+            ),
             _parameter_holder: parameter_holder,
         }
     }
@@ -544,8 +561,8 @@ impl PyPossibleEvent {
 ///Scenario
 ///    Another scenario that can be generated according to the parameters.
 ///
-#[pyclass(name = "ScenarioGenerator", eq, from_py_object)]
-#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
+#[pyclass(name = "ScenarioGenerator", from_py_object)]
+#[derive(Debug, Clone)]
 pub struct PyScenarioGenerator {
     generator: ScenarioIterator<'static>,
     _parameter_holder: Arc<ParameterHolder>,
