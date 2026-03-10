@@ -140,6 +140,9 @@ def test_scenario() -> None:
     assert isinstance(phi, bool)
     assert phi
 
+    s = Scenario.from_str("<John, Mary; {A: John, P: Mary (see)}>")
+    assert Scenario.from_str(str(s)) == s
+
     john = Scenario.from_str("<John (cool); {A: John (runs)}>").evaluate(
         "iota(x, some_e(e, pe_runs(e), AgentOf(x, e)))"
     )
