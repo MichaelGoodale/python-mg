@@ -80,10 +80,10 @@ class Lexicon:
     def generate_grammar(
         self,
         category: str,
-        min_log_prob: float | None = -128.0,
+        min_log_prob: float | None = None,
         move_prob: float = 0.5,
         max_steps: int | None = 64,
-        n_beams: int | None = 256,
+        n_beams: int | None = None,
         max_strings: int | None = None,
     ) -> GrammarIterator: ...
     def parse(
