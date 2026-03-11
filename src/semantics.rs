@@ -363,7 +363,7 @@ impl PyScenario {
     ///    The expression in the language of thought to execute.
     ///max_steps : int or None, optional
     ///    The number of steps in the virtual machine to execute before giving up.
-    ///    Default is 256.
+    ///    Default is 64.
     ///timeout : datetime.timedelta or None, optional
     ///    The amount of time before the execution gives up.
     ///    Default is None
@@ -400,6 +400,8 @@ impl PyScenario {
     ///    The actors who may or may not be present.
     ///event_kinds : list[``PossibleEvent``]
     ///    The possible kinds of events
+    /// actor_properties : list[str]
+    ///    The possible predicates that can apply to actors
     ///max_number_of_events : int | None
     ///    The maximum number of events in a given scenario (default is None, so unbounded)
     ///max_number_of_actors : int | None

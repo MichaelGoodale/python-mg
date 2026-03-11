@@ -114,7 +114,7 @@ class Lexicon:
     ) -> list[list[str]]: ...
     def token_continuations(
         self,
-        x: npt.NDArray[np.uint],
+        s: npt.NDArray[np.uint],
         category: str,
         min_log_prob: float | None = -128.0,
         move_prob: float = 0.5,

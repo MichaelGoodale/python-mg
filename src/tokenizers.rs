@@ -351,7 +351,7 @@ impl PyLexicon {
     ///
     ///Parameters
     ///----------
-    ///x : ndarray of uint, shape (L,)
+    ///s : ndarray of uint, shape (L,)
     ///    Input token sequences where L is the sequence length
     ///category : str
     ///    The syntactic category of the parsed strings

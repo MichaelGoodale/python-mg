@@ -104,7 +104,7 @@ class ParseTree:
 
         Returns
         -------
-        str
+        list[str | Mover | trace]
             the parsed sentence
 
         """

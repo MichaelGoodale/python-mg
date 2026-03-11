@@ -31,3 +31,7 @@ napoleon_numpy_docstring = True
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+
+
+# pdf support due to unicode usage
+latex_engine = "xelatex"

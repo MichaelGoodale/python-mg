@@ -113,7 +113,7 @@ impl Display for SelfOwningLexicon {
 ///
 ///Parameters
 ///----------
-///s : str
+///grammar : str
 ///     
 ///Raises
 ///------
@@ -426,6 +426,12 @@ impl PyLexicon {
 
     ///Gets the model description length of this lexicon. The precise calculation is described in `Deconstructing syntactic generalizations with minimalist grammars <https://aclanthology.org/2021.conll-1.34/>`_ (Ermolaeva, CoNLL 2021)
     ///
+    ///Parameters
+    ///----------
+    ///n_phonemes : int
+    ///    The number of phonemes that are possible in the phonology of the grammar (e.g. how many
+    ///    letters)
+    ///
     ///Returns
     ///-------
     ///float
@@ -459,7 +465,7 @@ impl PyLexicon {
     ///    Default is 256.
     ///Returns
     ///-------
-    ///set of Continauations
+    ///set of Continuation
     ///    Set indicating the next possible word, affixed word or whether the
     ///    sentence can be ended.
     fn continuations(
@@ -518,7 +524,7 @@ impl PyLexicon {
     ///    The syntactic category to be generated.
     ///min_log_prob : float or None, optional
     ///    Minimum log probability threshold to be generated.
-    ///    If none, there is no limited on log probability.
+    ///    If none, there is no limit on log probability.
     ///move_prob : float, optional
     ///    Probability of preferring a move over a merge when parsing.
     ///    Default is 0.5
@@ -590,7 +596,7 @@ impl PyLexicon {
     ///    The syntactic category to be generated.
     ///min_log_prob : float or None, optional
     ///    Minimum log probability threshold to be generated.
-    ///    If none, there is no limited on log probability.
+    ///    If none, there is no limit on log probability.
     ///move_prob : float, optional
     ///    Probability of preferring a move over a merge when parsing.
     ///    Default is 0.5
@@ -642,7 +648,7 @@ impl PyLexicon {
     ///    The syntactic category of the parsed string
     ///min_log_prob : float or None, optional
     ///    Minimum log probability threshold for the parser to consider
-    ///    If none, there is no limited on log probability.
+    ///    If none, there is no limit on log probability.
     ///move_prob : float, optional
     ///    Probability of preferring a move over a merge when parsing.
     ///    Default is 0.5
@@ -680,8 +686,8 @@ impl PyLexicon {
     }
 
     #[new]
-    fn new(s: String) -> PyResult<PyLexicon> {
-        PyLexicon::from_lexicon(SelfOwningLexicon::new(s)?)
+    fn new(grammar: String) -> PyResult<PyLexicon> {
+        PyLexicon::from_lexicon(SelfOwningLexicon::new(grammar)?)
     }
 }
 

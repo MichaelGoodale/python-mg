@@ -168,7 +168,7 @@ impl PySyntacticStructure {
             .is_some_and(|x| self.rules.used_lemmas().any(|y| &y == x)))
     }
 
-    ///The probability of generating this SyntacticStructure using its associated Lexicon.
+    ///Checks whether a word is present in a syntactic structure.
     ///
     ///Parameters
     ///----------
