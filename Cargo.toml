@@ -20,7 +20,7 @@ minimalist-grammar-parser = { git = "https://@github.com/MichaelGoodale/minimali
   "pretty",
 ] }
 anyhow = "1.0.98"
-logprob = "0.2.1"
+logprob = "0.3.0"
 rand = "0.10.0"
 numpy = "0.28.0"
 itertools = "0.14.0"
