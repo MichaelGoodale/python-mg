@@ -43,6 +43,52 @@ impl PyLambdaType {
         ))
     }
 
+    ///Returns whether the type is a function type
+    ///
+    ///Returns
+    ///-------
+    ///bool
+    ///    whether its a function
+    fn is_function(&self) -> bool {
+        self.0.is_function()
+    }
+
+    ///Returns the argument type of a function type
+    ///
+    ///Returns
+    ///-------
+    ///LambdaType
+    ///    The left hand side of the type
+    ///
+    ///Raises
+    ///------
+    ///ValueError
+    ///    If the type is not a function.
+    fn lhs(&self) -> PyResult<PyLambdaType> {
+        self.0
+            .lhs()
+            .map(|x| PyLambdaType(x.clone()))
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+
+    ///Returns the result type of a function type
+    ///
+    ///Returns
+    ///-------
+    ///LambdaType
+    ///    The right hand side of the type
+    ///
+    ///Raises
+    ///------
+    ///ValueError
+    ///    If the type is not a function.
+    fn rhs(&self) -> PyResult<PyLambdaType> {
+        self.0
+            .rhs()
+            .map(|x| PyLambdaType(x.clone()))
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+
     fn __repr__(&self) -> String {
         format!("LambdaType({self})")
     }

@@ -73,6 +73,7 @@ def test_lambdas() -> None:
         34, "a_John"
     )
     assert phi == Meaning("pa_nice(a_John) & pa_friendly(a_John)")
+    assert phi.lambda_type() == LambdaType("t")
     assert Meaning("nice#<a,t>(John#a) & wow#<e,<e,t>>(1#e, 2#e)").free_variables() == {
         "nice": LambdaType("<a,t>"),
         "John": LambdaType("a"),
@@ -80,6 +81,8 @@ def test_lambdas() -> None:
         1: LambdaType("e"),
         2: LambdaType("e"),
     }
+    assert LambdaType("<e,<e,t>>").lhs() == LambdaType("e")
+    assert LambdaType("<e,<e,t>>").rhs() == LambdaType("<e,t>")
 
 
 def test_generation() -> None:

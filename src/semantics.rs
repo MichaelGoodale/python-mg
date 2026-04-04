@@ -99,6 +99,16 @@ impl PyMeaning {
         (self.expr.to_string(),)
     }
 
+    ///Returns the type of the expression
+    ///
+    ///Returns
+    ///-------
+    ///LambdaType
+    ///    The type of expression
+    fn lambda_type(&self) -> PyLambdaType {
+        PyLambdaType(self.expr.get_type().unwrap())
+    }
+
     ///Returns a dictionary of all free variables in the Meaning.
     ///
     ///Returns
