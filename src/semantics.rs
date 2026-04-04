@@ -10,7 +10,7 @@ use itertools::Itertools;
 use pyo3::{exceptions::PyValueError, prelude::*};
 use simple_semantics::{
     Entity, EventType, LanguageResult, PossibleEvent, Scenario, ScenarioIterator, ThetaRoles,
-    lambda::{FreeVar, RootedLambdaPool},
+    lambda::{FreeVar, RootedLambdaPool, types::LambdaType},
     language::{ExecutionConfig, Expr},
 };
 
@@ -18,6 +18,8 @@ pub mod lot_types;
 use lot_types::{PyActor, PyEvent, convert_to_py_actor, convert_to_py_event};
 pub mod scenario;
 use scenario::PyScenario;
+
+use crate::semantics::lot_types::PyLambdaType;
 
 /// A language of thought expression that has been parsed.
 ///
@@ -71,7 +73,7 @@ impl Display for PyMeaning {
     }
 }
 
-#[derive(FromPyObject)]
+#[derive(FromPyObject, IntoPyObject, PartialEq, Eq, PartialOrd, Ord)]
 enum IntOrStr {
     #[pyo3(transparent, annotation = "int")]
     Int(usize),
@@ -95,6 +97,27 @@ impl PyMeaning {
 
     fn __getnewargs__(&self) -> (String,) {
         (self.expr.to_string(),)
+    }
+
+    ///Returns a dictionary of all free variables in the Meaning.
+    ///
+    ///Returns
+    ///-------
+    ///dict of {int or str, LambdaType}
+    ///    A dictionary of all free variables and their types.
+    fn free_variables(&self) -> BTreeMap<IntOrStr, PyLambdaType> {
+        self.expr
+            .free_variables()
+            .map(|(fvar, t)| {
+                (
+                    match fvar {
+                        FreeVar::Named(s) => IntOrStr::Str(s.to_string()),
+                        FreeVar::Anonymous(i) => IntOrStr::Int(*i),
+                    },
+                    PyLambdaType(t.clone()),
+                )
+            })
+            .collect()
     }
 
     ///Binds a free variable

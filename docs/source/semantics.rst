@@ -20,6 +20,10 @@ These are the classes that allow you to evaluate Language of Thought expressions
    :members:
    :undoc-members:
 
+.. autoclass:: python_mg.semantics.LambdaType
+   :members:
+   :undoc-members:
+
 .. autoclass:: python_mg.semantics.PossibleEvent
    :members:
    :undoc-members:

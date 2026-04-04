@@ -3,6 +3,55 @@ use simple_semantics::Event;
 
 use super::*;
 
+///Represents a type in the Language of Thought
+///
+/// The types are defined as follows:
+///
+/// * :math:`a`: Actors (things which receive theta-roles)
+/// * :math:`e`: Events (things which assign theta-roles)
+/// * :math:`t`: Truth values (true or false)
+/// * :math:`\langle x, y \rangle`: a function from a type :math:`x` to a type :math:`y`
+///
+///
+///Parameters
+///----------
+///t: str
+///    The type of the string
+#[pyclass(
+    name = "LambdaType",
+    module = "python_mg.semantics",
+    eq,
+    str,
+    from_py_object,
+    frozen
+)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
+pub struct PyLambdaType(pub LambdaType);
+
+impl Display for PyLambdaType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[pymethods]
+impl PyLambdaType {
+    #[new]
+    fn new(t: &str) -> PyResult<Self> {
+        Ok(PyLambdaType(
+            LambdaType::from_string(t).map_err(|e| PyValueError::new_err(e.to_string()))?,
+        ))
+    }
+
+    fn __repr__(&self) -> String {
+        format!("LambdaType({self})")
+    }
+
+    fn __getnewargs__(&self) -> String {
+        self.to_string()
+    }
+}
+
 pub(super) fn convert_to_py_actor(name: &str, scenario: &Scenario<'_>) -> PyActor {
     PyActor {
         name: name.to_string(),

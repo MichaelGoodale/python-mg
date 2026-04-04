@@ -7,6 +7,7 @@ from python_mg._lib_name import (
     PossibleEvent,
     ScenarioGenerator,
     Meaning,
+    LambdaType,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "PossibleEvent",
     "ScenarioGenerator",
     "Meaning",
+    "LambdaType",
 ]

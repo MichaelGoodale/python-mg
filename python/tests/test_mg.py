@@ -3,7 +3,14 @@
 import pickle
 
 from python_mg import Lexicon, Continuation
-from python_mg.semantics import Meaning, PossibleEvent, Scenario, Actor, Event
+from python_mg.semantics import (
+    LambdaType,
+    Meaning,
+    PossibleEvent,
+    Scenario,
+    Actor,
+    Event,
+)
 from python_mg.syntax import Trace, Mover
 
 
@@ -52,6 +59,7 @@ def test_lambdas() -> None:
     alpha = Meaning("lambda a x pa_nice(x) & pa_friendly(x)")
     beta = Meaning("Johnny#a")
     phi = Meaning("(lambda a x pa_nice(x) & pa_friendly(x))(Johnny#a)")
+    assert phi.free_variables() == {"Johnny": LambdaType("a")}
     assert alpha.apply(beta, reduce=False) == phi
 
     psi = Meaning("pa_nice(Johnny#a) & pa_friendly(Johnny#a)")
@@ -65,6 +73,13 @@ def test_lambdas() -> None:
         34, "a_John"
     )
     assert phi == Meaning("pa_nice(a_John) & pa_friendly(a_John)")
+    assert Meaning("nice#<a,t>(John#a) & wow#<e,<e,t>>(1#e, 2#e)").free_variables() == {
+        "nice": LambdaType("<a,t>"),
+        "John": LambdaType("a"),
+        "wow": LambdaType("<e,<e,t>>"),
+        1: LambdaType("e"),
+        2: LambdaType("e"),
+    }
 
 
 def test_generation() -> None:
