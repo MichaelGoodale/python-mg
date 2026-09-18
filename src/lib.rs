@@ -23,7 +23,7 @@ use syntax::PySyntacticStructure;
 
 use crate::{
     semantics::{
-        PyMeaning, PyPossibleEvent, PyScenarioGenerator,
+        PyMeaning, PyPossibleEvent, PyScenarioGenerator, PyTruthToTruth,
         lot_types::{PyActor, PyEvent, PyLambdaType},
         scenario::PyScenario,
     },
@@ -718,5 +718,6 @@ fn python_mg(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyPossibleEvent>()?;
     m.add_class::<PyMeaning>()?;
     m.add_class::<PyLambdaType>()?;
+    m.add_class::<PyTruthToTruth>()?;
     Ok(())
 }

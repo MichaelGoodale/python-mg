@@ -8,6 +8,7 @@ from python_mg._lib_name import (
     ScenarioGenerator,
     Meaning,
     LambdaType,
+    TruthToTruth,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "ScenarioGenerator",
     "Meaning",
     "LambdaType",
+    "TruthToTruth",
 ]

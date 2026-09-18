@@ -7,11 +7,14 @@ use std::{
 };
 
 use itertools::Itertools;
-use pyo3::{exceptions::PyValueError, prelude::*};
+use pyo3::{
+    exceptions::{PyDeprecationWarning, PyValueError},
+    prelude::*,
+};
 use simple_semantics::{
-    Entity, EventType, LanguageResult, PossibleEvent, Scenario, ScenarioIterator, ThetaRoles,
-    lambda::{FreeVar, RootedLambdaPool, types::LambdaType},
-    language::{ExecutionConfig, Expr},
+    Entity, EventType, PossibleEvent, Scenario, ScenarioIterator, ThetaRoles,
+    lambda::{FreeVar, Literal, RootedLambdaPool, Value, types::LambdaType},
+    language::Expr,
 };
 
 pub mod lot_types;
@@ -302,36 +305,72 @@ impl MeaningOrString {
 }
 
 #[derive(IntoPyObject)]
-enum OwnedLanguageResult {
+enum OwnedLanguageLiteral {
     Bool(bool),
     Actor(PyActor),
     Event(PyEvent),
     ActorSet(HashSet<PyActor>),
     EventSet(HashSet<PyEvent>),
+    TruthToTruth(PyTruthToTruth),
 }
 
-impl OwnedLanguageResult {
-    fn new(language_result: LanguageResult, scenario: &Scenario) -> PyResult<Self> {
+#[pyclass(
+    name = "TruthToTruth",
+    module = "python_mg.semantics",
+    eq,
+    str,
+    frozen,
+    from_py_object
+)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
+pub struct PyTruthToTruth {
+    #[pyo3(get)]
+    on_true: bool,
+    #[pyo3(get)]
+    on_false: bool,
+}
+
+impl Display for PyTruthToTruth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{{False → {}, True → {}}}", self.on_false, self.on_true)
+    }
+}
+
+#[pymethods]
+impl PyTruthToTruth {
+    #[new]
+    fn new(on_true: bool, on_false: bool) -> Self {
+        Self { on_true, on_false }
+    }
+
+    fn __call__(&self, x: bool) -> bool {
+        if x { self.on_true } else { self.on_false }
+    }
+}
+
+impl OwnedLanguageLiteral {
+    fn new(language_result: Literal<'_>, scenario: &Scenario) -> PyResult<Self> {
         Ok(match language_result {
-            LanguageResult::Bool(bool) => OwnedLanguageResult::Bool(bool),
-            LanguageResult::Actor(name) => {
-                OwnedLanguageResult::Actor(convert_to_py_actor(name, scenario))
+            Literal::Bool(bool) => OwnedLanguageLiteral::Bool(bool),
+            Literal::Actor(name) => {
+                OwnedLanguageLiteral::Actor(convert_to_py_actor(name, scenario))
             }
-            LanguageResult::Event(e_i) => {
-                OwnedLanguageResult::Event(convert_to_py_event(e_i, scenario)?)
-            }
-            LanguageResult::ActorSet(items) => OwnedLanguageResult::ActorSet(
+            Literal::Event(e_i) => OwnedLanguageLiteral::Event(convert_to_py_event(e_i, scenario)?),
+            Literal::ActorSet(items) => OwnedLanguageLiteral::ActorSet(
                 items
                     .into_iter()
                     .map(|name| convert_to_py_actor(name, scenario))
                     .collect(),
             ),
-            LanguageResult::EventSet(items) => OwnedLanguageResult::EventSet(
+            Literal::EventSet(items) => OwnedLanguageLiteral::EventSet(
                 items
                     .into_iter()
                     .map(|e_i| convert_to_py_event(e_i, scenario))
                     .collect::<Result<HashSet<_>, _>>()?,
             ),
+            Literal::TruthTable { on_false, on_true } => {
+                OwnedLanguageLiteral::TruthToTruth(PyTruthToTruth { on_false, on_true })
+            }
         })
     }
 }
@@ -340,21 +379,21 @@ impl PyScenario {
     fn execute<'a>(
         &'a self,
         mut expr: RootedLambdaPool<'a, Expr<'a>>,
-        config: Option<ExecutionConfig>,
-    ) -> PyResult<OwnedLanguageResult> {
+    ) -> PyResult<OwnedLanguageLiteral> {
         let scenario = self.as_scenario();
         expr.reduce()
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         expr.cleanup();
 
-        let pool = expr
-            .into_pool()
+        let language_result = expr
+            .interp(&scenario)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
-
-        let language_result = pool
-            .run(&scenario, config)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
-        OwnedLanguageResult::new(language_result, &scenario)
+        match language_result {
+            Value::Base(literal) => OwnedLanguageLiteral::new(literal, &scenario),
+            _ => Err(PyValueError::new_err(
+                "Values like {language_result} are not yet implemented",
+            )),
+        }
     }
 }
 
@@ -417,11 +456,32 @@ impl PyScenario {
         expression: MeaningOrString,
         max_steps: Option<usize>,
         timeout: Option<Duration>,
-    ) -> PyResult<OwnedLanguageResult> {
-        self.execute(
-            expression.into_meaning()?.expr().clone(),
-            Some(ExecutionConfig::new(max_steps, timeout).allow_empty_quantification()),
-        )
+    ) -> PyResult<OwnedLanguageLiteral> {
+        if max_steps != Some(64) {
+            Python::attach(|py| {
+                let category = py.get_type::<PyDeprecationWarning>();
+                PyErr::warn(
+                    py,
+                    &category,
+                    c"`max_steps` is currently deprecated and will be ignored",
+                    2,
+                )
+            })?;
+        }
+
+        if !timeout.is_none() {
+            Python::attach(|py| {
+                let category = py.get_type::<PyDeprecationWarning>();
+                PyErr::warn(
+                    py,
+                    &category,
+                    c"`timeout` is currently deprecated and will be ignored",
+                    2,
+                )
+            })?;
+        }
+
+        self.execute(expression.into_meaning()?.expr().clone())
     }
 
     ///Creates a generator that goes over all possible scenarios that can be generated according to

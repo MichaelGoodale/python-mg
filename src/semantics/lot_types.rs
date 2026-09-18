@@ -1,4 +1,3 @@
-use pyo3::prelude::*;
 use simple_semantics::Event;
 
 use super::*;
