@@ -9,13 +9,10 @@ name = "python_mg"
 crate-type = ["cdylib"]
 
 [dependencies]
-simple-semantics = { git = "https://github.com/MichaelGoodale/simple-semantics.git" }
-pyo3 = { version = "0.29.2", features = [
-  "anyhow",
-  "extension-module",
-  "generate-import-lib",
-  "multiple-pymethods",
+simple-semantics = { git = "https://github.com/MichaelGoodale/simple-semantics.git", features = [
+  "ownable",
 ] }
+pyo3 = { version = "0.29.2", features = ["anyhow", "multiple-pymethods"] }
 minimalist-grammar-parser = { git = "https://@github.com/MichaelGoodale/minimalist-grammar-parser.git", features = [
   "pretty",
 ] }

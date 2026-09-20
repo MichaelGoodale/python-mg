@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, BTreeSet, HashSet},
+    collections::{BTreeMap, BTreeSet},
     fmt::Display,
     hash::Hash,
     sync::Arc,
@@ -8,17 +8,18 @@ use std::{
 
 use itertools::Itertools;
 use pyo3::{
-    exceptions::{PyDeprecationWarning, PyValueError},
+    exceptions::{PyDeprecationWarning, PyTypeError, PyValueError},
     prelude::*,
 };
 use simple_semantics::{
     Entity, EventType, PossibleEvent, Scenario, ScenarioIterator, ThetaRoles,
-    lambda::{FreeVar, Literal, RootedLambdaPool, Value, types::LambdaType},
+    lambda::{FreeVar, RootedLambdaPool, Value, types::LambdaType},
     language::Expr,
+    owned::{OwnedExpr, OwnedLiteral, OwnedRootedLambdaPool, OwnedValue},
 };
 
 pub mod lot_types;
-use lot_types::{PyActor, PyEvent, convert_to_py_actor, convert_to_py_event};
+use lot_types::{PyActor, PyEvent};
 pub mod scenario;
 use scenario::PyScenario;
 
@@ -28,11 +29,6 @@ use crate::semantics::lot_types::PyLambdaType;
 ///
 /// You can always use a string instead of this class, but
 /// this class allows you to save time on parsing the LOT expression if you use it a lot.
-///
-/// Parameters
-/// ----------
-/// s : str
-///     A Language of Thought Expression
 #[pyclass(
     name = "Meaning",
     module = "python_mg.semantics",
@@ -43,8 +39,15 @@ use crate::semantics::lot_types::PyLambdaType;
 )]
 #[derive(Debug, Clone)]
 pub struct PyMeaning {
-    expr: RootedLambdaPool<'static, Expr<'static>>,
-    strings: Vec<Arc<String>>,
+    expr: OwnedRootedLambdaPool<OwnedExpr>,
+}
+
+impl PyMeaning {
+    pub(crate) fn new_parsed(expr: RootedLambdaPool<Expr>) -> Self {
+        Self {
+            expr: expr.into_owned(),
+        }
+    }
 }
 
 impl PartialEq for PyMeaning {
@@ -56,23 +59,14 @@ impl PartialEq for PyMeaning {
 impl Eq for PyMeaning {}
 
 impl PyMeaning {
-    fn expr<'a>(&'a self) -> &'a RootedLambdaPool<'a, Expr<'a>> {
-        &self.expr
-    }
-
-    pub unsafe fn from_other(expr: RootedLambdaPool<'_, Expr<'_>>, s: Vec<Arc<String>>) -> Self {
-        let expr: RootedLambdaPool<'static, Expr<'static>> = unsafe { std::mem::transmute(expr) };
-
-        Self {
-            expr,
-            strings: s.clone(),
-        }
+    fn expr<'a>(&'a self) -> RootedLambdaPool<'a, Expr<'a>> {
+        self.expr.as_borrowed()
     }
 }
 
 impl Display for PyMeaning {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.expr)
+        write!(f, "{}", self.expr.as_borrowed())
     }
 }
 
@@ -88,18 +82,18 @@ enum IntOrStr {
 impl PyMeaning {
     #[new]
     fn new(expr: String) -> PyResult<Self> {
-        let string = Arc::new(expr);
-        let s: &'static str = unsafe { std::mem::transmute(string.as_str()) };
-        let expr = RootedLambdaPool::parse(s).map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let string: Arc<str> = expr.into();
+        let s: &'static str = unsafe { std::mem::transmute(&*string) };
+        let expr: RootedLambdaPool<Expr> =
+            RootedLambdaPool::parse(s).map_err(|e| PyValueError::new_err(e.to_string()))?;
 
         Ok(Self {
-            expr,
-            strings: vec![string],
+            expr: expr.into_owned(),
         })
     }
 
     fn __getnewargs__(&self) -> (String,) {
-        (self.expr.to_string(),)
+        (self.expr.as_borrowed().to_string(),)
     }
 
     ///Returns the type of the expression
@@ -109,7 +103,7 @@ impl PyMeaning {
     ///LambdaType
     ///    The type of expression
     fn lambda_type(&self) -> PyLambdaType {
-        PyLambdaType(self.expr.get_type().unwrap())
+        PyLambdaType(self.expr.as_borrowed().get_type().unwrap())
     }
 
     ///Returns a dictionary of all free variables in the Meaning.
@@ -119,8 +113,9 @@ impl PyMeaning {
     ///dict of {int or str, LambdaType}
     ///    A dictionary of all free variables and their types.
     fn free_variables(&self) -> BTreeMap<IntOrStr, PyLambdaType> {
-        self.expr
-            .free_variables()
+        let expr = self.expr.as_borrowed();
+
+        expr.free_variables()
             .map(|(fvar, t)| {
                 (
                     match fvar {
@@ -181,30 +176,27 @@ impl PyMeaning {
         value: MeaningOrString,
         reduce: bool,
     ) -> PyResult<PyMeaning> {
-        let mut phi = self.clone();
-        let PyMeaning { expr: psi, strings } = value.into_meaning()?;
-        let fvar = match free_var {
-            IntOrStr::Int(x) => FreeVar::Anonymous(x),
-            IntOrStr::Str(string) => {
-                let string = Arc::new(string);
-                let s: &'static str = unsafe { std::mem::transmute(string.as_str()) };
-                phi.strings.push(string);
-                FreeVar::Named(s)
-            }
+        let mut phi = self.expr.as_borrowed();
+
+        let psi = value.as_expr()?;
+
+        let fvar = match &free_var {
+            IntOrStr::Int(x) => FreeVar::Anonymous(*x),
+            IntOrStr::Str(string) => FreeVar::Named(string.as_str()),
         };
 
-        phi.strings.extend(strings);
-        phi.expr
-            .bind_free_variable(fvar, psi)
+        phi.bind_free_variable(fvar, psi)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
+
         if reduce {
-            phi.expr
-                .reduce()
+            phi.reduce()
                 .map_err(|e| PyValueError::new_err(e.to_string()))?;
-            phi.expr.cleanup();
+            phi.cleanup();
         }
 
-        Ok(phi)
+        Ok(PyMeaning {
+            expr: phi.into_owned(),
+        })
     }
 
     ///Applies psi to self.
@@ -240,15 +232,8 @@ impl PyMeaning {
     ///    unparseable string.
     #[pyo3(signature = (psi, reduce=true))]
     fn apply(&self, psi: MeaningOrString, reduce: bool) -> PyResult<Option<PyMeaning>> {
-        let PyMeaning {
-            expr: psi,
-            strings: psi_strings,
-        } = psi.into_meaning()?;
-        let PyMeaning {
-            expr: phi,
-            mut strings,
-        } = self.clone();
-        strings.extend(psi_strings);
+        let psi = psi.as_expr()?;
+        let phi = self.expr.as_borrowed();
         if let Some(mut phi) = phi.apply(psi) {
             if reduce {
                 phi.reduce()
@@ -256,7 +241,9 @@ impl PyMeaning {
                 phi.cleanup();
             }
             //strings may grow monotonically but its unlikely to ever actually be an issue!
-            Ok(Some(PyMeaning { expr: phi, strings }))
+            Ok(Some(PyMeaning {
+                expr: phi.into_owned(),
+            }))
         } else {
             Ok(None)
         }
@@ -274,12 +261,13 @@ impl PyMeaning {
     ///ValueError
     ///    If there is an error in how the meaning is constructed leading the reduction to fail.
     fn reduce(&self) -> PyResult<Self> {
-        let mut phi = self.clone();
-        phi.expr
-            .reduce()
+        let mut phi = self.expr.as_borrowed();
+        phi.reduce()
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
-        phi.expr.cleanup();
-        Ok(phi)
+        phi.cleanup();
+        Ok(PyMeaning {
+            expr: phi.into_owned(),
+        })
     }
 
     fn __repr__(&self) -> String {
@@ -302,16 +290,215 @@ impl MeaningOrString {
             MeaningOrString::String(s) => PyMeaning::new(s),
         }
     }
+    fn as_expr<'a>(&'a self) -> PyResult<RootedLambdaPool<'a, Expr<'a>>> {
+        match self {
+            MeaningOrString::Meaning(meaning) => Ok(meaning.expr.as_borrowed()),
+            MeaningOrString::String(s) => RootedLambdaPool::parse(s.as_str())
+                .map_err(|x| PyValueError::new_err(x.to_string())),
+        }
+    }
 }
 
-#[derive(IntoPyObject)]
-enum OwnedLanguageLiteral {
-    Bool(bool),
+#[pyclass(
+    name = "LOTValue",
+    module = "python_mg.semantics",
+    eq,
+    str,
+    frozen,
+    from_py_object
+)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
+pub struct PyLotValue(OwnedValue<OwnedExpr>, LiteralExtras);
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
+enum LiteralExtras {
+    None,
     Actor(PyActor),
     Event(PyEvent),
-    ActorSet(HashSet<PyActor>),
-    EventSet(HashSet<PyEvent>),
-    TruthToTruth(PyTruthToTruth),
+    ActorSet(Vec<PyActor>),
+    EventSet(Vec<PyEvent>),
+}
+
+impl PyLotValue {
+    fn new(value: Value<'_, '_, Expr>, scenario: &PyScenario) -> Self {
+        let v = value.into_owned();
+
+        let extras = match &v {
+            OwnedValue::Base(OwnedLiteral::Actor(a)) => LiteralExtras::Actor(
+                scenario
+                    .actors
+                    .iter()
+                    .find(|x| &x.name == a)
+                    .expect("Value's actor must be contained in scenario! (Rust library error)")
+                    .clone(),
+            ),
+
+            OwnedValue::Base(OwnedLiteral::Event(e)) => LiteralExtras::Event(
+                scenario
+                    .events
+                    .get(*e as usize)
+                    .expect("Value's event must be contained in scenario! (Rust library error)")
+                    .clone(),
+            ),
+
+            OwnedValue::Base(OwnedLiteral::ActorSet(a)) => LiteralExtras::ActorSet(
+                scenario
+                    .actors
+                    .iter()
+                    .filter(|x| a.iter().any(|n| &x.name == n))
+                    .cloned()
+                    .collect(),
+            ),
+            OwnedValue::Base(OwnedLiteral::EventSet(e)) => LiteralExtras::EventSet(
+                e.iter()
+                    .map(|e| {
+                        scenario
+                            .events
+                            .get(*e as usize)
+                            .expect("Value's events must be in the scenario! (Rust library error)")
+                            .clone()
+                    })
+                    .collect(),
+            ),
+            _ => LiteralExtras::None,
+        };
+
+        PyLotValue(v, extras)
+    }
+}
+
+#[pymethods]
+impl PyLotValue {
+    fn __bool__(&self) -> PyResult<bool> {
+        self.as_bool()
+    }
+
+    ///Converts to a boolean
+    ///
+    ///Returns
+    ///-------
+    ///bool
+    ///    The corresponding boolean of this LotValue.
+    ///
+    ///Raises
+    ///------
+    ///TypeError
+    ///    If the value is not a raw boolean.
+    fn as_bool(&self) -> PyResult<bool> {
+        if let OwnedValue::Base(OwnedLiteral::Bool(b)) = self.0 {
+            Ok(b)
+        } else {
+            Err(PyTypeError::new_err(format!(
+                "{self} is not a raw boolean!"
+            )))
+        }
+    }
+
+    ///Converts to a actor
+    ///
+    ///Returns
+    ///-------
+    ///Actor
+    ///    The corresponding actor of this LotValue.
+    ///
+    ///Raises
+    ///------
+    ///TypeError
+    ///    If the value is not a raw actor.
+    fn as_actor(&self) -> PyResult<PyActor> {
+        if let LiteralExtras::Actor(a) = &self.1 {
+            Ok(a.clone())
+        } else {
+            Err(PyTypeError::new_err(format!("{self} is not a raw actor!")))
+        }
+    }
+
+    ///Converts to a event
+    ///
+    ///Returns
+    ///-------
+    ///Event
+    ///    The corresponding event of this LotValue.
+    ///
+    ///Raises
+    ///------
+    ///TypeError
+    ///    If the value is not a raw event.
+    fn as_event(&self) -> PyResult<PyEvent> {
+        if let LiteralExtras::Event(a) = &self.1 {
+            Ok(a.clone())
+        } else {
+            Err(PyTypeError::new_err(format!("{self} is not a raw event!")))
+        }
+    }
+
+    ///Converts to a list[Actor]
+    ///
+    ///Returns
+    ///-------
+    ///list[Actor]
+    ///    The corresponding list[Actor] of this LotValue.
+    ///
+    ///Raises
+    ///------
+    ///TypeError
+    ///    If the value is not a raw set of actors.
+    fn as_actor_set(&self) -> PyResult<Vec<PyActor>> {
+        if let LiteralExtras::ActorSet(a) = &self.1 {
+            Ok(a.clone())
+        } else {
+            Err(PyTypeError::new_err(format!(
+                "{self} is not a raw actor set!"
+            )))
+        }
+    }
+
+    ///Converts to a list[Event]
+    ///
+    ///Returns
+    ///-------
+    ///list[Event]
+    ///    The corresponding list[Event] of this LotValue.
+    ///
+    ///Raises
+    ///------
+    ///TypeError
+    ///    If the value is not a raw set of events.
+    fn as_event_set(&self) -> PyResult<Vec<PyEvent>> {
+        if let LiteralExtras::EventSet(a) = &self.1 {
+            Ok(a.clone())
+        } else {
+            Err(PyTypeError::new_err(format!(
+                "{self} is not a raw event set!"
+            )))
+        }
+    }
+    ///Converts to a TruthTable
+    ///
+    ///Returns
+    ///-------
+    ///TruthTable
+    ///    The corresponding TruthTable of this LotValue
+    ///
+    ///Raises
+    ///------
+    ///TypeError
+    ///    If the value is not a raw <t,t>
+    fn as_truth_table(&self) -> PyResult<PyTruthToTruth> {
+        if let OwnedValue::Base(OwnedLiteral::TruthTable { on_false, on_true }) = self.0 {
+            Ok(PyTruthToTruth { on_true, on_false })
+        } else {
+            Err(PyTypeError::new_err(format!(
+                "{self} is not a raw truth to truth!"
+            )))
+        }
+    }
+}
+
+impl Display for PyLotValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.as_borrowed())
+    }
 }
 
 #[pyclass(
@@ -348,52 +535,16 @@ impl PyTruthToTruth {
     }
 }
 
-impl OwnedLanguageLiteral {
-    fn new(language_result: Literal<'_>, scenario: &Scenario) -> PyResult<Self> {
-        Ok(match language_result {
-            Literal::Bool(bool) => OwnedLanguageLiteral::Bool(bool),
-            Literal::Actor(name) => {
-                OwnedLanguageLiteral::Actor(convert_to_py_actor(name, scenario))
-            }
-            Literal::Event(e_i) => OwnedLanguageLiteral::Event(convert_to_py_event(e_i, scenario)?),
-            Literal::ActorSet(items) => OwnedLanguageLiteral::ActorSet(
-                items
-                    .into_iter()
-                    .map(|name| convert_to_py_actor(name, scenario))
-                    .collect(),
-            ),
-            Literal::EventSet(items) => OwnedLanguageLiteral::EventSet(
-                items
-                    .into_iter()
-                    .map(|e_i| convert_to_py_event(e_i, scenario))
-                    .collect::<Result<HashSet<_>, _>>()?,
-            ),
-            Literal::TruthTable { on_false, on_true } => {
-                OwnedLanguageLiteral::TruthToTruth(PyTruthToTruth { on_false, on_true })
-            }
-        })
-    }
-}
-
 impl PyScenario {
-    fn execute<'a>(
-        &'a self,
-        mut expr: RootedLambdaPool<'a, Expr<'a>>,
-    ) -> PyResult<OwnedLanguageLiteral> {
+    fn execute<'a>(&'a self, mut expr: RootedLambdaPool<'a, Expr<'a>>) -> PyResult<PyLotValue> {
         let scenario = self.as_scenario();
         expr.reduce()
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         expr.cleanup();
 
-        let language_result = expr
-            .interp(&scenario)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
-        match language_result {
-            Value::Base(literal) => OwnedLanguageLiteral::new(literal, &scenario),
-            _ => Err(PyValueError::new_err(
-                "Values like {language_result} are not yet implemented",
-            )),
-        }
+        expr.interp(&scenario)
+            .map(|x| PyLotValue::new(x, self))
+            .map_err(|e| PyValueError::new_err(e.to_string()))
     }
 }
 
@@ -456,7 +607,7 @@ impl PyScenario {
         expression: MeaningOrString,
         max_steps: Option<usize>,
         timeout: Option<Duration>,
-    ) -> PyResult<OwnedLanguageLiteral> {
+    ) -> PyResult<PyLotValue> {
         if max_steps != Some(64) {
             Python::attach(|py| {
                 let category = py.get_type::<PyDeprecationWarning>();

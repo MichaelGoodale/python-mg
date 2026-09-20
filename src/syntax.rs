@@ -1,4 +1,4 @@
-use std::{fmt::Display, sync::Arc};
+use std::fmt::Display;
 
 use crate::{
     graphing::{PyMgEdge, PyMgNode},
@@ -57,10 +57,7 @@ impl PySyntacticStructure {
             meaning: py_lex.semantics().map(|lexicon| {
                 rules
                     .to_interpretation(lexicon)
-                    .map(|(expr, _)| {
-                        let s = vec![Arc::clone(py_lex.backing_string())];
-                        unsafe { PyMeaning::from_other(expr, s) }
-                    })
+                    .map(|(expr, _)| PyMeaning::new_parsed(expr))
                     .collect()
             }),
             rules,
@@ -81,10 +78,7 @@ impl PySyntacticStructure {
             meaning: py_lex.semantics().map(|lexicon| {
                 rules
                     .to_interpretation(lexicon)
-                    .map(|(expr, _)| {
-                        let s = vec![Arc::clone(py_lex.backing_string())];
-                        unsafe { PyMeaning::from_other(expr, s) }
-                    })
+                    .map(|(expr, _)| PyMeaning::new_parsed(expr))
                     .collect()
             }),
             rules,

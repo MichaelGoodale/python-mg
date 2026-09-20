@@ -152,8 +152,10 @@ def test_scenario() -> None:
     ]
     assert len(scenarios) == 9
 
-    phi = Scenario.from_str("<John; {A: John (runs)}>").evaluate(
-        "(lambda a x some_e(e, pe_runs(e), AgentOf(x, e)))(a_John)"
+    phi = (
+        Scenario.from_str("<John; {A: John (runs)}>")
+        .evaluate("(lambda a x some_e(e, pe_runs(e), AgentOf(x, e)))(a_John)")
+        .as_bool()
     )
     assert isinstance(phi, bool)
     assert phi
@@ -161,8 +163,10 @@ def test_scenario() -> None:
     s = Scenario.from_str("<John, Mary; {A: John, P: Mary (see)}>")
     assert Scenario.from_str(str(s)) == s
 
-    john = Scenario.from_str("<John (cool); {A: John (runs)}>").evaluate(
-        "iota(x, some_e(e, pe_runs(e), AgentOf(x, e)))"
+    john = (
+        Scenario.from_str("<John (cool); {A: John (runs)}>")
+        .evaluate("iota(x, some_e(e, pe_runs(e), AgentOf(x, e)))")
+        .as_actor()
     )
     assert isinstance(john, Actor)
     assert john.name == "John"

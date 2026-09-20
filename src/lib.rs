@@ -61,13 +61,13 @@ impl PossiblySemanticLexicon {
 struct SelfOwningLexicon {
     lexicon: PossiblySemanticLexicon,
     ///Must be last so it is dropped after previous things.
-    string: Arc<String>,
+    string: Arc<str>,
 }
 
 impl SelfOwningLexicon {
     fn new(s: String) -> anyhow::Result<Self> {
-        let string = Arc::new(s);
-        let str: &'static str = unsafe { std::mem::transmute(string.as_str()) };
+        let string: Arc<str> = s.into();
+        let str: &'static str = unsafe { std::mem::transmute(&*string) };
 
         Ok(SelfOwningLexicon {
             lexicon: PossiblySemanticLexicon::new(str)?,
@@ -177,10 +177,6 @@ impl Display for PyLexicon {
 impl PyLexicon {
     fn semantics<'a>(&'a self) -> Option<&'a SemanticLexicon<'a, &'a str, &'a str>> {
         self.lexicon.semantic_lexicon()
-    }
-
-    fn backing_string(&self) -> &Arc<String> {
-        &self.lexicon.string
     }
 }
 
@@ -720,4 +716,47 @@ fn python_mg(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyLambdaType>()?;
     m.add_class::<PyTruthToTruth>()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn random_moving_tests() -> anyhow::Result<()> {
+        let lexicon = SelfOwningLexicon::new("john::v::True".to_owned())?;
+        let clone = lexicon.clone();
+        drop(lexicon);
+
+        let _ = format!("{}", clone.lexicon());
+
+        let moved = clone;
+        let moved = Box::new(moved);
+        let moved = *moved;
+
+        let _ = format!("{}", moved.lexicon());
+        let mut lexicon = SelfOwningLexicon::new("john::v::True".to_owned())?;
+
+        for _ in 0..100 {
+            let r = Box::new(lexicon);
+            lexicon = *r;
+        }
+
+        let _ = format!("{}", lexicon.lexicon());
+
+        let lexicon = SelfOwningLexicon::new("john::v::True".to_owned())?;
+        let a = lexicon.clone();
+        let b = lexicon.clone();
+        let c = lexicon.clone();
+
+        drop(lexicon);
+        drop(a);
+        drop(b);
+
+        // `c` must still have valid backing storage.
+        let _ = format!("{}", c.lexicon());
+
+        Ok(())
+    }
 }

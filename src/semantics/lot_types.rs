@@ -1,5 +1,3 @@
-use simple_semantics::Event;
-
 use super::*;
 
 ///Represents a type in the Language of Thought
@@ -95,50 +93,6 @@ impl PyLambdaType {
     fn __getnewargs__(&self) -> String {
         self.to_string()
     }
-}
-
-pub(super) fn convert_to_py_actor(name: &str, scenario: &Scenario<'_>) -> PyActor {
-    PyActor {
-        name: name.to_string(),
-        properties: scenario
-            .properties()
-            .iter()
-            .filter_map(|(prop, entries)| {
-                if entries.contains(&Entity::Actor(name)) {
-                    Some(prop.to_string())
-                } else {
-                    None
-                }
-            })
-            .collect(),
-    }
-}
-
-pub(super) fn convert_to_py_event(e_i: Event, scenario: &Scenario<'_>) -> Result<PyEvent, PyErr> {
-    let e = scenario
-        .thematic_relations()
-        .get(e_i as usize)
-        .ok_or_else(|| {
-            PyValueError::new_err(format!(
-                "Result is event {e_i}, but no such event exists in the scenario!"
-            ))
-        })?;
-
-    Ok(PyEvent {
-        agent: e.agent.map(|x| x.to_string()),
-        patient: e.patient.map(|x| x.to_string()),
-        properties: scenario
-            .properties()
-            .iter()
-            .filter_map(|(prop, entries)| {
-                if entries.contains(&Entity::Event(e_i)) {
-                    Some(prop.to_string())
-                } else {
-                    None
-                }
-            })
-            .collect(),
-    })
 }
 
 ///Represents an actor with a name and a set of properties to be used in Scenarios.

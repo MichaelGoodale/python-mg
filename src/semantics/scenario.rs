@@ -29,14 +29,14 @@ use super::*;
 pub struct PyScenario {
     ///A list of Actors in the scenario
     #[pyo3(get, set)]
-    actors: Vec<PyActor>,
+    pub actors: Vec<PyActor>,
     ///A list of Events in the scenario
     #[pyo3(get, set)]
-    events: Vec<PyEvent>,
+    pub events: Vec<PyEvent>,
 
     ///A list of questions to be asked in the scenario
     #[pyo3(get)]
-    questions: Vec<PyMeaning>,
+    pub questions: Vec<PyMeaning>,
 }
 
 impl From<Scenario<'_>> for PyScenario {
