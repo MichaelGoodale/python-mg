@@ -320,7 +320,7 @@ enum LiteralExtras {
 }
 
 impl PyLotValue {
-    fn new(value: Value<'_, '_, Expr>, scenario: &PyScenario) -> Self {
+    fn new(value: Value<'_, Expr>, scenario: &PyScenario) -> Self {
         let v = value.into_owned();
 
         let extras = match &v {
@@ -391,6 +391,18 @@ impl PyLotValue {
             Err(PyTypeError::new_err(format!(
                 "{self} is not a raw boolean!"
             )))
+        }
+    }
+
+    ///Converts to a Meaning
+    ///
+    ///Returns
+    ///-------
+    ///PyMeaning
+    ///    This value as a Meaning
+    fn as_meaning(&self) -> PyMeaning {
+        PyMeaning {
+            expr: self.0.as_borrowed().into_pool().into_owned(),
         }
     }
 
