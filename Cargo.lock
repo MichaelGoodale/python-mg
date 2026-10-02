@@ -313,7 +313,7 @@ checksum = "2687e6cf9c00f48e9284cf9fd15f2ef341d03cc7743abf9df4c5f07fdee50b18"
 [[package]]
 name = "minimalist-grammar-parser"
 version = "0.1.0"
-source = "git+https://github.com/MichaelGoodale/minimalist-grammar-parser.git#12bcd74530faf6e1869b7404378292ec99e216eb"
+source = "git+https://github.com/MichaelGoodale/minimalist-grammar-parser.git#c6935343af3a0fd2a33e8e400f9464390e79d9ee"
 dependencies = [
  "ahash",
  "bitvec",
@@ -672,7 +672,7 @@ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 [[package]]
 name = "simple-semantics"
 version = "0.1.0"
-source = "git+https://github.com/MichaelGoodale/simple-semantics.git#fcec0800f8e452d1d1c6a380d74fb9551e5f9037"
+source = "git+https://github.com/MichaelGoodale/simple-semantics.git#590a56d4180b5bc4777216a4f35a9a1c2e309b7a"
 dependencies = [
  "ahash",
  "ariadne",
