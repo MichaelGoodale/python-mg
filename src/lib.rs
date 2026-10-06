@@ -509,7 +509,7 @@ impl PyLexicon {
         PyLexicon::from_lexicon(SelfOwningLexicon::new(lex_s)?)
     }
 
-    #[pyo3(signature = (category, min_log_prob=None, move_prob=0.5, max_steps=64, n_beams=None, max_strings=None))]
+    #[pyo3(signature = (category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256, max_strings=None))]
     ///Generates all strings for the lexicon, without paying attention to their SyntacticStructure.
     ///This differs from :meth:`python_mg.Lexicon.generate_grammar` as different parses will be
     ///collapsed, and only strings will be returned.
@@ -521,7 +521,7 @@ impl PyLexicon {
     ///min_log_prob : float or None, optional
     ///    Minimum log probability threshold to be generated.
     ///    If none, there is no limit on log probability.
-    ///    Default is None.
+    ///    Default is -128.0.
     ///move_prob : float, optional
     ///    Probability of preferring a move over a merge when parsing.
     ///    Default is 0.5
@@ -530,7 +530,7 @@ impl PyLexicon {
     ///    Default is 64.
     ///n_beams : int or None, optional
     ///    Number of beams to maintain while parsing. If None, will not be limited.
-    ///    Default is None.
+    ///    Default is 256.
     ///max_strings : int or None, optional
     ///    Number of strings to generate before stopping.
     ///    Default is None.
@@ -587,7 +587,7 @@ impl PyLexicon {
             .collect())
     }
 
-    #[pyo3(signature = (category, min_log_prob=None, move_prob=0.5, max_steps=64, n_beams=None, max_strings=None))]
+    #[pyo3(signature = (category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256, max_strings=None))]
     ///Generates all syntactic structures for the lexicon.
     ///
     ///Parameters
@@ -597,7 +597,7 @@ impl PyLexicon {
     ///min_log_prob : float or None, optional
     ///    Minimum log probability threshold to be generated.
     ///    If none, there is no limit on log probability.
-    ///    Default is None.
+    ///    Default is -128.0.
     ///move_prob : float, optional
     ///    Probability of preferring a move over a merge when parsing.
     ///    Default is 0.5
@@ -606,7 +606,7 @@ impl PyLexicon {
     ///    Default is 64.
     ///n_beams : int or None, optional
     ///    Number of beams to maintain while parsing. If None, will not be limited.
-    ///    Default is None.
+    ///    Default is 256.
     ///max_strings : int or None, optional
     ///    Number of strings to generate before stopping.
     ///    Default is None.

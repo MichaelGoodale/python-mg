@@ -70,19 +70,19 @@ class Lexicon:
     def generate_unique_strings(
         self,
         category: str,
-        min_log_prob: float | None = None,
+        min_log_prob: float | None = -128.0,
         move_prob: float = 0.5,
         max_steps: int | None = 64,
-        n_beams: int | None = None,
+        n_beams: int | None = 256,
         max_strings: int | None = None,
     ) -> list[tuple[list[str], float]]: ...
     def generate_grammar(
         self,
         category: str,
-        min_log_prob: float | None = None,
+        min_log_prob: float | None = -128.0,
         move_prob: float = 0.5,
         max_steps: int | None = 64,
-        n_beams: int | None = None,
+        n_beams: int | None = 256,
         max_strings: int | None = None,
     ) -> GrammarIterator: ...
     def parse(
@@ -97,7 +97,7 @@ class Lexicon:
     ) -> list[SyntacticStructure]: ...
     def parse_tokens(
         self,
-        s: Sequence[int],
+        s: Sequence[int] | npt.NDArray[np.uint64],
         category: str,
         min_log_prob: float | None = -128.0,
         move_prob: float = 0.5,
@@ -106,8 +106,10 @@ class Lexicon:
         max_parses: int | None = None,
     ) -> list[SyntacticStructure]: ...
     def tokens(self) -> dict[str, int]: ...
-    def detokenize(self, s: Sequence[int]) -> list[str]: ...
-    def detokenize_batch(self, s: Sequence[Sequence[int]]) -> list[list[str]]: ...
+    def detokenize(self, s: Sequence[int] | npt.NDArray[np.uint64]) -> list[str]: ...
+    def detokenize_batch(
+        self, s: Sequence[Sequence[int]] | npt.NDArray[np.uint64]
+    ) -> list[list[str]]: ...
     def token_continuations(
         self,
         s: npt.NDArray[np.uint64],
