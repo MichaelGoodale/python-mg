@@ -97,7 +97,7 @@ class Lexicon:
     ) -> list[SyntacticStructure]: ...
     def parse_tokens(
         self,
-        s: Sequence[int] | npt.NDArray[np.uint64],
+        s: Sequence[int] | npt.NDArray[np.integer],
         category: str,
         min_log_prob: float | None = -128.0,
         move_prob: float = 0.5,
@@ -106,9 +106,9 @@ class Lexicon:
         max_parses: int | None = None,
     ) -> list[SyntacticStructure]: ...
     def tokens(self) -> dict[str, int]: ...
-    def detokenize(self, s: Sequence[int] | npt.NDArray[np.uint64]) -> list[str]: ...
+    def detokenize(self, s: Sequence[int] | npt.NDArray[np.integer]) -> list[str]: ...
     def detokenize_batch(
-        self, s: Sequence[Sequence[int]] | npt.NDArray[np.uint64]
+        self, s: Sequence[Sequence[int]] | npt.NDArray[np.integer]
     ) -> list[list[str]]: ...
     def token_continuations(
         self,
