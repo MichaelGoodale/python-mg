@@ -29,7 +29,7 @@ class SyntacticStructure:
     def latex(self) -> str: ...
     def to_tree(self) -> ParseTree: ...
     def max_memory_load(self) -> int: ...
-    def tokens(self) -> npt.NDArray[np.uint]: ...
+    def tokens(self) -> npt.NDArray[np.uint64]: ...
     @property
     def meaning(self) -> list[Meaning] | None: ...
     def __to_tree_inner(
@@ -66,15 +66,14 @@ class Lexicon:
         move_prob: float = 0.5,
         max_steps: int | None = 64,
         n_beams: int | None = 256,
-        max_strings: int | None = None,
     ) -> set[Continuation]: ...
     def generate_unique_strings(
         self,
         category: str,
-        min_log_prob: float = -128.0,
+        min_log_prob: float | None = None,
         move_prob: float = 0.5,
         max_steps: int | None = 64,
-        n_beams: int | None = 256,
+        n_beams: int | None = None,
         max_strings: int | None = None,
     ) -> list[tuple[list[str], float]]: ...
     def generate_grammar(
@@ -94,27 +93,24 @@ class Lexicon:
         move_prob: float = 0.5,
         max_steps: int | None = 64,
         n_beams: int | None = 256,
-        max_strings: int | None = None,
+        max_parses: int | None = None,
     ) -> list[SyntacticStructure]: ...
     def parse_tokens(
         self,
-        s: Sequence[int] | npt.NDArray[np.uint],
+        s: Sequence[int],
         category: str,
         min_log_prob: float | None = -128.0,
         move_prob: float = 0.5,
         max_steps: int | None = 64,
         n_beams: int | None = 256,
-        max_strings: int | None = None,
+        max_parses: int | None = None,
     ) -> list[SyntacticStructure]: ...
     def tokens(self) -> dict[str, int]: ...
-    def detokenize(self, s: Sequence[int] | npt.NDArray[np.uint]) -> list[str]: ...
-    def detokenize_batch(
-        self,
-        s: Sequence[Sequence[int]] | list[npt.NDArray[np.uint]] | npt.NDArray[np.uint],
-    ) -> list[list[str]]: ...
+    def detokenize(self, s: Sequence[int]) -> list[str]: ...
+    def detokenize_batch(self, s: Sequence[Sequence[int]]) -> list[list[str]]: ...
     def token_continuations(
         self,
-        s: npt.NDArray[np.uint],
+        s: npt.NDArray[np.uint64],
         category: str,
         min_log_prob: float | None = -128.0,
         move_prob: float = 0.5,
@@ -154,7 +150,7 @@ class Meaning:
     def reduce(self) -> Meaning: ...
     def lambda_type(self) -> LambdaType: ...
 
-class TruthTable:
+class TruthToTruth:
     def __init__(self, on_true: bool, on_false: bool) -> None: ...
     def __call__(self, x: bool) -> bool: ...
 
