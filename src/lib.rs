@@ -155,9 +155,8 @@ impl Display for SelfOwningLexicon {
 ///        assert len(s) == 1
 ///        parse = s[0]
 ///        assert parse.meaning is not None
-///        assert parse.meaning == [
+///        assert str(parse.meaning[0]) ==
 ///            "some_e(x, pe_likes(x), AgentOf(a_John, x) & PatientOf(a_Mary, x))"
-///        ]
 ///    
 struct PyLexicon {
     word_id: TokenMap,
@@ -564,7 +563,7 @@ impl PyLexicon {
                 .or_insert(prob);
 
             if let Some(max_strings) = max_strings
-                && hashmap.len() > max_strings
+                && hashmap.len() >= max_strings
             {
                 break;
             }
@@ -664,6 +663,9 @@ impl PyLexicon {
     ///    Default is 64.
     ///n_beams : int or None, optional
     ///    Number of beams to maintain while parsing. If None, will not be limited.
+    ///    Default is None.
+    ///max_parses : int or None, optional
+    ///    Maximum number of parses to return. If None, all found parses are returned.
     ///    Default is None.
     ///Returns
     ///-------
