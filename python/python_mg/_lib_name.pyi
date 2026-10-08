@@ -169,7 +169,7 @@ class PossibleEvent:
         has_patient: bool = False,
         is_reflexive: bool = True,
     ) -> None: ...
-    def event_kind(self) -> Literal[
+    def event_type(self) -> Literal[
         "Transitive",
         "TransitiveNonReflexive",
         "Unergative",

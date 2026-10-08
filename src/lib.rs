@@ -664,6 +664,9 @@ impl PyLexicon {
     ///n_beams : int or None, optional
     ///    Number of beams to maintain while parsing. If None, will not be limited.
     ///    Default is None.
+    ///max_parses : int or None, optional
+    ///    Maximum number of parses to return. If None, all found parses are returned.
+    ///    Default is None.
     ///Returns
     ///-------
     ///list of SyntacticStructure

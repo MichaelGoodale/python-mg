@@ -297,7 +297,7 @@ impl PyLexicon {
     ///
     /// Parameters
     /// ----------
-    /// s : Sequence[Sequence[int]], npt.NDArray[np.uint] or list[npt.NDArray[np.uint]]
+    /// batch : Sequence[Sequence[int]] or npt.NDArray[np.integer]
     ///     A sequence or array of token IDs to be converted to strings.
     ///
     /// Returns
@@ -365,6 +365,9 @@ impl PyLexicon {
     ///    Default is 64.
     ///n_beams : int or None, optional
     ///    Number of beams to maintain while parsing. If none, will not be limited.
+    ///    Default is None.
+    ///max_parses : int or None, optional
+    ///    Maximum number of parses to return. If None, all found parses are returned.
     ///    Default is None.
     ///Returns
     ///-------
