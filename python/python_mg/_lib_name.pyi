@@ -62,47 +62,47 @@ class Lexicon:
         self,
         prefix: str,
         category: str,
-        min_log_prob: float | None = -128.0,
+        min_log_prob: float | None = None,
         move_prob: float = 0.5,
         max_steps: int | None = 64,
-        n_beams: int | None = 256,
+        n_beams: int | None = None,
     ) -> set[Continuation]: ...
     def generate_unique_strings(
         self,
         category: str,
-        min_log_prob: float | None = -128.0,
+        min_log_prob: float | None = None,
         move_prob: float = 0.5,
         max_steps: int | None = 64,
-        n_beams: int | None = 256,
+        n_beams: int | None = None,
         max_strings: int | None = None,
     ) -> list[tuple[list[str], float]]: ...
     def generate_grammar(
         self,
         category: str,
-        min_log_prob: float | None = -128.0,
+        min_log_prob: float | None = None,
         move_prob: float = 0.5,
         max_steps: int | None = 64,
-        n_beams: int | None = 256,
+        n_beams: int | None = None,
         max_strings: int | None = None,
     ) -> GrammarIterator: ...
     def parse(
         self,
         s: str,
         category: str,
-        min_log_prob: float | None = -128.0,
+        min_log_prob: float | None = None,
         move_prob: float = 0.5,
         max_steps: int | None = 64,
-        n_beams: int | None = 256,
+        n_beams: int | None = None,
         max_parses: int | None = None,
     ) -> list[SyntacticStructure]: ...
     def parse_tokens(
         self,
         s: Sequence[int] | npt.NDArray[np.integer],
         category: str,
-        min_log_prob: float | None = -128.0,
+        min_log_prob: float | None = None,
         move_prob: float = 0.5,
         max_steps: int | None = 64,
-        n_beams: int | None = 256,
+        n_beams: int | None = None,
         max_parses: int | None = None,
     ) -> list[SyntacticStructure]: ...
     def tokens(self) -> dict[str, int]: ...
@@ -114,10 +114,10 @@ class Lexicon:
         self,
         s: npt.NDArray[np.uint64],
         category: str,
-        min_log_prob: float | None = -128.0,
+        min_log_prob: float | None = None,
         move_prob: float = 0.5,
         max_steps: int | None = 64,
-        n_beams: int | None = 256,
+        n_beams: int | None = None,
     ) -> npt.NDArray[np.bool]: ...
 
 class Actor:

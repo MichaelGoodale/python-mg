@@ -122,7 +122,7 @@ impl PyLexicon {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (x, category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256))]
+    #[pyo3(signature = (x, category, min_log_prob=None, move_prob=0.5, max_steps=64, n_beams=None))]
     ///Compute valid next token continuations for grammar sequences.
     ///
     ///Takes an array of token sequences in a grammar and returns a boolean mask
@@ -145,7 +145,7 @@ impl PyLexicon {
     ///    Default is 64.
     ///n_beams : int or None, optional
     ///    Number of beams to maintain while parsing. If none, will not be limited.
-    ///    Default is 256.
+    ///    Default is None.
     ///Returns
     ///-------
     ///ndarray of bool, shape (..., N, L, C)
@@ -345,7 +345,7 @@ impl PyLexicon {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (s, category, min_log_prob=-128.0, move_prob=0.5, max_steps=64, n_beams=256, max_parses=None))]
+    #[pyo3(signature = (s, category, min_log_prob=None, move_prob=0.5, max_steps=64, n_beams=None, max_parses=None))]
     ///Converts a sequence of tokens into a list of SyntacticStructure. Will throw a ValueError if
     ///the tokens are not formatted properly (but the list will be  empty if there is no parse).
     ///
@@ -365,7 +365,7 @@ impl PyLexicon {
     ///    Default is 64.
     ///n_beams : int or None, optional
     ///    Number of beams to maintain while parsing. If none, will not be limited.
-    ///    Default is 256.
+    ///    Default is None.
     ///Returns
     ///-------
     ///    list of :meth:`python_mg.SyntacticStructure`
